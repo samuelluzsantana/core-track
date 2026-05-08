@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Flame, Timer, Dumbbell, ChevronRight, Lightbulb, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { getAppData, getWeeklyVolume, getTotalSessions, initLombarLevel } from '../utils/storage';
-import { getRandomTip } from '../utils/exerciseApi';
-import { calculateIPC, IPCResult } from '../utils/ipcAlgorithm';
-import { AppData } from '../types';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, TrendingUp, Info, Zap, Droplets, ShieldCheck, Flame } from 'lucide-react';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { TopBar } from '../components/TopBar';
 import { NumberTicker } from '../components/ui/NumberTicker';
 import GlassIcons from '../components/ui/GlassIcons';
+import { AppData } from '../types';
+import { calculateIPC, IPCResult } from '../utils/ipcAlgorithm';
+import { getAppData, getWeeklyVolume, getTotalSessions, initLombarLevel } from '../utils/storage';
+import { getRandomTip } from '../utils/exerciseApi';
+import { useAuth } from '../hooks/useAuth';
 
 const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
   <motion.div
@@ -46,12 +49,12 @@ const ProgressRing = ({ percentage }: { percentage: number }) => {
   );
 };
 
-
-const Home: React.FC = () => {
+export default function Home() {
+  const navigate = useNavigate();
   const userName = "Usuário"; // Mock data
   const streak = 5; // Mock data
   const ipcScore = 88; // Mock data
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState<AppData | null>(null);
   const [volume, setVolume] = useState({ plankSeconds: 0, exerciseReps: 0 });
   const [totalSessions, setTotalSessions] = useState(0);
@@ -163,254 +166,6 @@ const Home: React.FC = () => {
             </div>
          </div>
        </GlassCard>
-    </div>
-  );
-};
-
-export function Home() {
-  const navigate = useNavigate();
-  const [data, setData] = useState<AppData | null>(null);
-  const [volume, setVolume] = useState({ plankSeconds: 0, exerciseReps: 0 });
-  const [totalSessions, setTotalSessions] = useState(0);
-  const [tip, setTip] = useState<{ exerciseName: string; tip: string } | null>(null);
-  const [ipc, setIpc] = useState<IPCResult | null>(null);
-
-  useEffect(() => {
-    initLombarLevel();
-    const appData = getAppData();
-    setData(appData);
-    setVolume(getWeeklyVolume());
-    setTotalSessions(getTotalSessions());
-    setTip(getRandomTip());
-    setIpc(calculateIPC(appData));
-  }, []);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
-  };
-
-  if (!data) return null;
-
-  const isHighPain = data.profile?.painLevel && data.profile.painLevel >= 7;
-
-  const glassItems = [
-    {
-      icon: <Timer className="w-full h-full" />,
-      color: 'amber',
-      label: 'Prancha',
-      onClick: () => navigate('/plank'),
-    },
-    {
-      icon: <Dumbbell className="w-full h-full" />,
-      color: 'teal',
-      label: isHighPain ? 'Mobilidade' : 'Core',
-      onClick: () => navigate('/exercises'),
-    },
-  ];
-
-  return (
-    <div className="p-6 pt-12 space-y-8 relative">
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="flex justify-between items-start"
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-app-text">
-            {getGreeting()}!
-          </h1>
-          <p className="text-app-textMuted text-sm mt-1">
-            Pronto para fortalecer o core?
-          </p>
-        </div>
-
-        {/* Streak Badge */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={`flex flex-col items-center glass-card rounded-2xl p-3 min-w-[68px] ${
-            data.currentStreak > 0 ? 'glow-amber' : ''
-          }`}
-        >
-          <Flame
-            className={`w-7 h-7 ${
-              data.currentStreak > 0
-                ? 'text-app-primary animate-pulse-slow'
-                : 'text-app-textMuted'
-            }`}
-          />
-          <span className="text-lg font-bold mt-1">
-            {data.currentStreak > 0 ? (
-              <NumberTicker value={data.currentStreak} className="text-app-text" />
-            ) : (
-              '0'
-            )}
-          </span>
-          <span className="text-[9px] text-app-textMuted font-medium">STREAK</span>
-        </motion.div>
-      </motion.header>
-
-      {/* Quick Action — GlassIcons */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <h2 className="text-base font-semibold mb-5 text-app-textMuted uppercase tracking-wider text-[11px]">
-          Treino Rápido
-        </h2>
-        <GlassIcons items={glassItems} className="justify-center gap-12" />
-      </motion.section>
-
-      {/* Workout Cards */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="space-y-3"
-      >
-        <h2 className="text-base font-semibold mb-3 text-app-textMuted uppercase tracking-wider text-[11px]">
-          Treino Sugerido
-        </h2>
-
-        <button
-          onClick={() => navigate('/plank')}
-          className="w-full glass-card p-4 rounded-2xl flex items-center gap-4 hover:border-app-primary/50 transition-all text-left group"
-        >
-          <div className="w-12 h-12 bg-app-primary/10 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-app-primary/20 transition-colors">
-            <Timer className="text-app-primary w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-app-text">Prancha Diária</h3>
-            <p className="text-xs text-app-textMuted mt-0.5">
-              Mantenha a consistência
-            </p>
-          </div>
-          <ChevronRight className="text-app-textMuted w-5 h-5 group-hover:text-app-primary transition-colors" />
-        </button>
-
-        <button
-          onClick={() => navigate('/exercises')}
-          className="w-full glass-card p-4 rounded-2xl flex items-center gap-4 hover:border-app-secondary/50 transition-all text-left group"
-        >
-          <div className="w-12 h-12 bg-app-secondary/10 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-app-secondary/20 transition-colors">
-            <Dumbbell className="text-app-secondary w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-app-text">
-              {isHighPain ? 'Mobilidade Lombar' : 'Fortalecimento Core'}
-            </h3>
-            <p className="text-xs text-app-textMuted mt-0.5">
-              {isHighPain ? 'Foco em alívio de dor' : 'Séries e repetições'}
-            </p>
-          </div>
-          <ChevronRight className="text-app-textMuted w-5 h-5 group-hover:text-app-secondary transition-colors" />
-        </button>
-      </motion.section>
-
-      {/* Weekly Summary */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-      >
-        <h2 className="text-base font-semibold mb-3 text-app-textMuted uppercase tracking-wider text-[11px]">
-          Resumo da Semana
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="glass-card p-4 rounded-2xl text-center">
-            <div className="text-app-textMuted text-[10px] mb-2 uppercase tracking-wide">Prancha</div>
-            <div className="text-xl font-bold text-app-primary">
-              {volume.plankSeconds > 0 ? (
-                <NumberTicker value={Math.floor(volume.plankSeconds / 60)} className="text-app-primary" />
-              ) : '0'}
-              <span className="text-xs text-app-textMuted ml-0.5">m</span>
-            </div>
-          </div>
-          <div className="glass-card p-4 rounded-2xl text-center">
-            <div className="text-app-textMuted text-[10px] mb-2 uppercase tracking-wide">Reps</div>
-            <div className="text-xl font-bold text-app-secondary">
-              {volume.exerciseReps > 0 ? (
-                <NumberTicker value={volume.exerciseReps} className="text-app-secondary" />
-              ) : '0'}
-            </div>
-          </div>
-          <div className="glass-card p-4 rounded-2xl text-center">
-            <div className="text-app-textMuted text-[10px] mb-2 uppercase tracking-wide">Sessões</div>
-            <div className="text-xl font-bold text-app-text">
-              {totalSessions > 0 ? (
-                <NumberTicker value={totalSessions} className="text-app-text" />
-              ) : '0'}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* IPC Readiness Card */}
-      {ipc && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.35 }}
-        >
-          <h2 className="text-base font-semibold mb-3 text-app-textMuted uppercase tracking-wider text-[11px]">
-            Prontidão do Core
-          </h2>
-          <button
-            onClick={() => navigate('/settings')}
-            className="w-full glass-card p-4 rounded-2xl flex items-center gap-4 text-left group hover:border-opacity-50 transition-all"
-            style={{ borderColor: `${ipc.color}30` }}
-          >
-            <span className="text-2xl">{ipc.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-app-text text-sm">{ipc.label}</div>
-              <div className="text-xs text-app-textMuted mt-0.5 line-clamp-1">{ipc.description}</div>
-              {/* Mini progress bar */}
-              <div className="h-1 bg-app-bg/50 rounded-full mt-2 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.round(ipc.components.ipc * 100)}%` }}
-                  transition={{ duration: 1, delay: 0.5 }}
-                  className="h-full rounded-full"
-                  style={{ backgroundColor: ipc.color }}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col items-center shrink-0">
-              <span className="text-xl font-bold" style={{ color: ipc.color }}>
-                {Math.round(ipc.components.ipc * 100)}%
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 text-app-textMuted group-hover:text-app-text transition-colors mt-1" />
-            </div>
-          </button>
-        </motion.section>
-      )}
-
-      {/* Daily Tip */}
-      {tip && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-        >
-          <div className="glass-card p-4 rounded-2xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Lightbulb className="w-4 h-4 text-app-primary" />
-              <span className="text-[10px] uppercase tracking-wider text-app-textMuted font-semibold">
-                Dica do Dia — {tip.exerciseName}
-              </span>
-            </div>
-            <p className="text-sm text-app-text/90 leading-relaxed">
-              {tip.tip}
-            </p>
-          </div>
-        </motion.section>
-      )}
     </div>
   );
 }
