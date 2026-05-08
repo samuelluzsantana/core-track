@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Play, TrendingUp, Info, Zap, Droplets, ShieldCheck, Flame } from 'lucide-react';
-import { Card, CardContent } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { TopBar } from '../components/TopBar';
-import { NumberTicker } from '../components/ui/NumberTicker';
-import GlassIcons from '../components/ui/GlassIcons';
-import { AppData } from '../types';
+import { motion } from 'framer-motion';
+import { Zap, Droplets, ShieldCheck, Flame } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { calculateIPC, IPCResult } from '../utils/ipcAlgorithm';
 import { getAppData, getWeeklyVolume, getTotalSessions, initLombarLevel } from '../utils/storage';
 import { getRandomTip } from '../utils/exerciseApi';
@@ -54,22 +49,6 @@ export default function Home() {
   const userName = "Usuário"; // Mock data
   const streak = 5; // Mock data
   const ipcScore = 88; // Mock data
-  const { user } = useAuth();
-  const [data, setData] = useState<AppData | null>(null);
-  const [volume, setVolume] = useState({ plankSeconds: 0, exerciseReps: 0 });
-  const [totalSessions, setTotalSessions] = useState(0);
-  const [tip, setTip] = useState<{ exerciseName: string; tip: string } | null>(null);
-  const [ipc, setIpc] = useState<IPCResult | null>(null);
-
-  useEffect(() => {
-    initLombarLevel();
-    const appData = getAppData();
-    setData(appData);
-    setVolume(getWeeklyVolume());
-    setTotalSessions(getTotalSessions());
-    setTip(getRandomTip());
-    setIpc(calculateIPC(appData));
-  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -77,25 +56,6 @@ export default function Home() {
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
   };
-
-  if (!data) return null;
-
-  const isHighPain = data.profile?.painLevel && data.profile.painLevel >= 7;
-
-  const glassItems = [
-    {
-      icon: <Timer className="w-full h-full" />,
-      color: 'amber',
-      label: 'Prancha',
-      onClick: () => navigate('/plank'),
-    },
-    {
-      icon: <Dumbbell className="w-full h-full" />,
-      color: 'teal',
-      label: isHighPain ? 'Mobilidade' : 'Core',
-      onClick: () => navigate('/exercises'),
-    },
-  ];
 
   return (
     <div className="relative min-h-screen w-full max-w-[430px] mx-auto p-6 flex flex-col gap-8 overflow-hidden bg-app-bg pb-24">
