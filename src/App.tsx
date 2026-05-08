@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Onboarding } from './pages/Onboarding';
-import { Login } from './pages/Login';
-import { Layout } from './components/Layout';
-import { getAppData } from './utils/storage';
-import Home from './pages/Home';
-import { Plank } from './pages/Plank';
-import { Exercises } from './pages/Exercises';
-import { Progress } from './pages/Progress';
-import { Settings } from './pages/Settings';
+import React, { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { Onboarding } from "./pages/Onboarding";
+import { Login } from "./pages/Login";
+import { Layout } from "./components/Layout";
+import { getAppData } from "./utils/storage";
+import Home from "./pages/Home";
+import { Plank } from "./pages/Plank";
+import { Exercises } from "./pages/Exercises";
+import { Progress } from "./pages/Progress";
+import { Settings } from "./pages/Settings";
 
 function AppRoutes() {
   const { user, loading } = useAuth();
