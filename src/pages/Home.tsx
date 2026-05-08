@@ -1,13 +1,24 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Zap, Droplets, ShieldCheck, Flame } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { calculateIPC, IPCResult } from '../utils/ipcAlgorithm';
-import { getAppData, getWeeklyVolume, getTotalSessions, initLombarLevel } from '../utils/storage';
-import { getRandomTip } from '../utils/exerciseApi';
-import { useAuth } from '../hooks/useAuth';
+import React from "react";
+import { motion } from "framer-motion";
+import { Zap, Droplets, ShieldCheck, Flame } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { calculateIPC, IPCResult } from "../utils/ipcAlgorithm";
+import {
+  getAppData,
+  getWeeklyVolume,
+  getTotalSessions,
+  initLombarLevel,
+} from "../utils/storage";
+import { getRandomTip } from "../utils/exerciseApi";
+import { useAuth } from "../hooks/useAuth";
 
-const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
+const GlassCard = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -32,7 +43,10 @@ const ProgressRing = ({ percentage }: { percentage: number }) => {
         stroke="url(#ipc-gradient)"
         strokeWidth={strokeWidth}
         fill="none"
-        style={{ strokeDasharray: `${circumference}px ${circumference}px`, strokeDashoffset: `${circumference - (percentage / 100) * circumference}px` }}
+        style={{
+          strokeDasharray: `${circumference}px ${circumference}px`,
+          strokeDashoffset: `${circumference - (percentage / 100) * circumference}px`,
+        }}
       />
       <defs>
         <linearGradient id="ipc-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -52,9 +66,9 @@ export default function Home() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
   };
 
   return (
@@ -65,29 +79,45 @@ export default function Home() {
 
       {/* Header */}
       <header className="z-10 mt-6 relative">
-        <h1 className="text-3xl font-bold">{getGreeting()}, {userName}</h1>
+        <h1 className="text-3xl font-bold">
+          {getGreeting()}, {userName}
+        </h1>
         <div className="flex items-center gap-2 mt-2 text-app-primary">
           <Flame size={18} />
-          <span className="font-semibold text-sm tracking-wide">STREAK DE {streak} DIAS</span>
+          <span className="font-semibold text-sm tracking-wide">
+            STREAK DE {streak} DIAS
+          </span>
         </div>
       </header>
 
       {/* IPC Card */}
       <GlassCard className="p-8 flex flex-col items-center text-center z-10 relative">
-        <h2 className="text-xs font-semibold tracking-widest text-app-textMuted uppercase mb-2">ÍNDICE DE PRONTIDÃO DO CORE</h2>
+        <h2 className="text-xs font-semibold tracking-widest text-app-textMuted uppercase mb-2">
+          ÍNDICE DE PRONTIDÃO DO CORE
+        </h2>
         <div className="relative my-6">
           <ProgressRing percentage={ipcScore} />
-          <motion.div 
+          <motion.div
             className="absolute inset-0 flex items-center justify-center text-5xl font-extrabold"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 260,
+              damping: 20,
+              delay: 1,
+            }}
           >
             {ipcScore}
           </motion.div>
         </div>
-        <p className="font-semibold text-lg">Seu core está <span className="text-app-primary font-bold">pronto e forte</span>.</p>
-        <p className="text-sm text-app-textMuted mt-2 max-w-[80%] mx-auto leading-relaxed">Pode aumentar a intensidade hoje.</p>
+        <p className="font-semibold text-lg">
+          Seu core está{" "}
+          <span className="text-app-primary font-bold">pronto e forte</span>.
+        </p>
+        <p className="text-sm text-app-textMuted mt-2 max-w-[80%] mx-auto leading-relaxed">
+          Pode aumentar a intensidade hoje.
+        </p>
       </GlassCard>
 
       {/* Action Cards */}
@@ -99,7 +129,7 @@ export default function Home() {
           <h3 className="font-bold text-center">Prancha Diária</h3>
           <p className="text-xs text-app-textMuted mt-1">Meta: 2min 30s</p>
         </GlassCard>
-        
+
         <GlassCard className="p-6 flex flex-col items-center justify-center aspect-square hover:border-app-secondary/50 transition-colors duration-300 group cursor-pointer">
           <div className="p-3 bg-app-secondary/10 rounded-full group-hover:bg-app-secondary/20 transition-colors duration-300 mb-3">
             <Droplets size={28} className="text-app-secondary" />
@@ -108,24 +138,38 @@ export default function Home() {
           <p className="text-xs text-app-textMuted mt-1">Foco: Mobilidade</p>
         </GlassCard>
       </div>
-      
+
       {/* Weekly Summary */}
-       <GlassCard className="p-6 z-10 relative mb-safe">
-         <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm uppercase tracking-wider text-app-textMuted">Resumo da Semana</h3>
-            <ShieldCheck size={20} className="text-app-secondary opacity-80"/>
-         </div>
-         <div className="mt-5 flex justify-between items-baseline">
-            <div>
-                <p className="text-[10px] text-app-textMuted uppercase tracking-widest mb-1">Volume Total</p>
-                <p className="text-3xl font-extrabold">45<span className="text-sm font-medium text-app-textMuted ml-1">min</span></p>
-            </div>
-            <div className="text-right">
-                <p className="text-[10px] text-app-textMuted uppercase tracking-widest mb-1">Sessões</p>
-                <p className="text-3xl font-extrabold">4<span className="text-xl font-medium text-app-textMuted">/5</span></p>
-            </div>
-         </div>
-       </GlassCard>
+      <GlassCard className="p-6 z-10 relative mb-safe">
+        <div className="flex justify-between items-center">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-app-textMuted">
+            Resumo da Semana
+          </h3>
+          <ShieldCheck size={20} className="text-app-secondary opacity-80" />
+        </div>
+        <div className="mt-5 flex justify-between items-baseline">
+          <div>
+            <p className="text-[10px] text-app-textMuted uppercase tracking-widest mb-1">
+              Volume Total
+            </p>
+            <p className="text-3xl font-extrabold">
+              45
+              <span className="text-sm font-medium text-app-textMuted ml-1">
+                min
+              </span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-app-textMuted uppercase tracking-widest mb-1">
+              Sessões
+            </p>
+            <p className="text-3xl font-extrabold">
+              4
+              <span className="text-xl font-medium text-app-textMuted">/5</span>
+            </p>
+          </div>
+        </div>
+      </GlassCard>
     </div>
   );
 }
