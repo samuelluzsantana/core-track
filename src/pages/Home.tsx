@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Droplets, ShieldCheck, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -19,8 +19,8 @@ const GlassCard = ({ children, className = '' }: { children: React.ReactNode, cl
 );
 
 const ProgressRing = ({ percentage }: { percentage: number }) => {
+  const radius = 50;
   const strokeWidth = 8;
-  const radius = 54 / 2;
   const circumference = 2 * Math.PI * radius;
 
   return (
