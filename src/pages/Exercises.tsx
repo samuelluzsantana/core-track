@@ -12,11 +12,13 @@ import {
   Trash2,
   ShieldAlert,
   Info,
+  Maximize2,
 } from 'lucide-react';
 import { useAppData } from '../contexts/AppDataContext';
 import { CatalogExercise } from '../types';
 import { getExerciseSafetyStatus, getExercisePR } from '../utils/ipcAlgorithm';
 import { ExerciseAvatar } from '../components/ExerciseAvatar';
+import { ExerciseMediaModal } from '../components/ExerciseMediaModal';
 import { AddExerciseModal } from '../components/AddExerciseModal';
 import { RoutineBuilderModal } from '../components/RoutineBuilderModal';
 import { CATEGORY_LABELS, IMPACT_LABELS, MODALITY_LABELS } from '../data/seedCatalog';
@@ -36,6 +38,10 @@ export function Exercises() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedEx, setSelectedEx] = useState<CatalogExercise | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<{
+    exercise: CatalogExercise;
+    index: number;
+  } | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addTab, setAddTab] = useState<'explore' | 'custom'>('explore');
   const [showRoutineBuilder, setShowRoutineBuilder] = useState(false);
@@ -166,11 +172,9 @@ export function Exercises() {
             {filteredCatalog.map((ex) => {
               const safety = getExerciseSafetyStatus(ex, ipc, catalog);
               return (
-                <button
+                <div
                   key={ex.id}
-                  type="button"
-                  onClick={() => setSelectedEx(ex)}
-                  className={`w-full p-3.5 flex items-center gap-3.5 text-left transition-colors ${
+                  className={`p-3.5 flex items-center gap-3.5 transition-colors ${
                     safety.locked
                       ? 'opacity-65 bg-subtle/40 hover:bg-subtle/70'
                       : 'hover:bg-surface-hover'
@@ -183,30 +187,37 @@ export function Exercises() {
                     themeColor={ex.themeColor}
                     iconName={ex.iconName}
                     size="md"
+                    onClick={() => setMediaPreview({ exercise: ex, index: 0 })}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="font-semibold text-sm text-ink truncate">
-                        {ex.name}
-                      </h3>
-                      {ex.isCustom && (
-                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-modality-cardio-soft text-modality-cardio">
-                          Custom
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEx(ex)}
+                    className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-semibold text-sm text-ink truncate">
+                          {ex.name}
+                        </h3>
+                        {ex.isCustom && (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-modality-cardio-soft text-modality-cardio">
+                            Custom
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-[11px] text-ink-muted capitalize">
+                          {ex.primaryMuscles[0] || CATEGORY_LABELS[ex.category]}
                         </span>
-                      )}
+                        <span className={`safety-badge safety-${ex.impactLevel}`}>
+                          {safety.locked && <Lock className="w-2.5 h-2.5" />}
+                          {IMPACT_LABELS[ex.impactLevel]}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-[11px] text-ink-muted capitalize">
-                        {ex.primaryMuscles[0] || CATEGORY_LABELS[ex.category]}
-                      </span>
-                      <span className={`safety-badge safety-${ex.impactLevel}`}>
-                        {safety.locked && <Lock className="w-2.5 h-2.5" />}
-                        {IMPACT_LABELS[ex.impactLevel]}
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-ink-muted shrink-0" />
-                </button>
+                    <ChevronRight className="w-4 h-4 text-ink-muted shrink-0" />
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -337,6 +348,9 @@ export function Exercises() {
                     themeColor={selectedEx.themeColor}
                     iconName={selectedEx.iconName}
                     size="lg"
+                    onClick={() =>
+                      setMediaPreview({ exercise: selectedEx, index: 0 })
+                    }
                   />
                   <div>
                     <h3 className="text-lg font-display font-bold text-ink">
@@ -365,16 +379,27 @@ export function Exercises() {
               {selectedEx.imageUrls.length > 0 && (
                 <div className="grid grid-cols-2 gap-2.5 mb-4">
                   {selectedEx.imageUrls.slice(0, 2).map((img, i) => (
-                    <div
+                    <button
                       key={i}
-                      className="aspect-[4/3] rounded-xl overflow-hidden border border-border-token bg-white"
+                      type="button"
+                      onClick={() =>
+                        setMediaPreview({ exercise: selectedEx, index: i })
+                      }
+                      aria-label={`Ampliar foto ${i + 1} de ${selectedEx.name}`}
+                      className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-border-token bg-white cursor-pointer hover:border-modality-cardio transition-colors"
                     >
                       <img
                         src={img}
                         alt={`${selectedEx.name} demonstração ${i + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform"
                       />
-                    </div>
+                      <span
+                        className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/65 text-white flex items-center justify-center backdrop-blur-sm opacity-90 group-hover:bg-modality-cardio transition-colors"
+                        aria-hidden="true"
+                      >
+                        <Maximize2 className="w-3 h-3" />
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -482,6 +507,22 @@ export function Exercises() {
       <RoutineBuilderModal
         isOpen={showRoutineBuilder}
         onClose={() => setShowRoutineBuilder(false)}
+      />
+
+      <ExerciseMediaModal
+        exercise={mediaPreview?.exercise ?? null}
+        initialPhotoIndex={mediaPreview?.index ?? 0}
+        onClose={() => setMediaPreview(null)}
+        onStartTraining={
+          mediaPreview &&
+          !getExerciseSafetyStatus(mediaPreview.exercise, ipc, catalog).locked
+            ? (ex) => {
+                setMediaPreview(null);
+                setSelectedEx(null);
+                navigate(`/train?exerciseId=${ex.id}`);
+              }
+            : undefined
+        }
       />
     </div>
   );

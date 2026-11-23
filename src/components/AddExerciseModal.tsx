@@ -16,6 +16,7 @@ import {
   Activity,
   Shield,
   Wind,
+  Maximize2,
 } from 'lucide-react';
 import {
   CatalogExercise,
@@ -27,6 +28,7 @@ import {
 import { useServices } from '../contexts/ServiceContext';
 import { useAppData } from '../contexts/AppDataContext';
 import { ExerciseAvatar } from './ExerciseAvatar';
+import { ExerciseMediaModal } from './ExerciseMediaModal';
 import { CATEGORY_LABELS, IMPACT_LABELS, MODALITY_LABELS } from '../data/seedCatalog';
 
 interface AddExerciseModalProps {
@@ -74,6 +76,10 @@ export function AddExerciseModal({
   const [searchMeta, setSearchMeta] = useState<{ source: string; message?: string } | null>(null);
   const [searching, setSearching] = useState(false);
   const [previewEx, setPreviewEx] = useState<CatalogExercise | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<{
+    exercise: CatalogExercise;
+    index: number;
+  } | null>(null);
   const [importingId, setImportingId] = useState<string | null>(null);
 
   // Custom tab state
@@ -371,6 +377,9 @@ export function AddExerciseModal({
                             measurementType={previewEx.measurementType}
                             themeColor={previewEx.themeColor}
                             size="lg"
+                            onClick={() =>
+                              setMediaPreview({ exercise: previewEx, index: 0 })
+                            }
                           />
                           <div>
                             <h3 className="font-display font-bold text-base text-ink">
@@ -394,16 +403,27 @@ export function AddExerciseModal({
                       {previewEx.imageUrls.length > 0 && (
                         <div className="grid grid-cols-2 gap-2">
                           {previewEx.imageUrls.slice(0, 2).map((img, i) => (
-                            <div
+                            <button
                               key={i}
-                              className="aspect-[4/3] rounded-xl overflow-hidden border border-border-token bg-white"
+                              type="button"
+                              onClick={() =>
+                                setMediaPreview({ exercise: previewEx, index: i })
+                              }
+                              aria-label={`Ampliar foto ${i + 1} de ${previewEx.name}`}
+                              className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-border-token bg-white cursor-pointer hover:border-modality-cardio transition-colors"
                             >
                               <img
                                 src={img}
                                 alt={`${previewEx.name} passo ${i + 1}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform"
                               />
-                            </div>
+                              <span
+                                className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-slate-900/65 text-white flex items-center justify-center backdrop-blur-sm opacity-90 group-hover:bg-modality-cardio transition-colors"
+                                aria-hidden="true"
+                              >
+                                <Maximize2 className="w-3 h-3" />
+                              </span>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -482,18 +502,21 @@ export function AddExerciseModal({
                             key={ex.id}
                             className="p-3.5 flex items-center gap-3 hover:bg-surface-hover transition-colors"
                           >
+                            <ExerciseAvatar
+                              name={ex.name}
+                              imageUrl={ex.imageUrls[0]}
+                              measurementType={ex.measurementType}
+                              themeColor={ex.themeColor}
+                              size="md"
+                              onClick={() =>
+                                setMediaPreview({ exercise: ex, index: 0 })
+                              }
+                            />
                             <button
                               type="button"
                               onClick={() => setPreviewEx(ex)}
                               className="flex items-center gap-3 flex-1 min-w-0 text-left"
                             >
-                              <ExerciseAvatar
-                                name={ex.name}
-                                imageUrl={ex.imageUrls[0]}
-                                measurementType={ex.measurementType}
-                                themeColor={ex.themeColor}
-                                size="md"
-                              />
                               <div className="min-w-0 flex-1">
                                 <div className="font-semibold text-sm text-ink truncate">
                                   {ex.name}
@@ -810,6 +833,12 @@ export function AddExerciseModal({
               )}
             </div>
           </motion.div>
+
+          <ExerciseMediaModal
+            exercise={mediaPreview?.exercise ?? null}
+            initialPhotoIndex={mediaPreview?.index ?? 0}
+            onClose={() => setMediaPreview(null)}
+          />
         </>
       )}
     </AnimatePresence>

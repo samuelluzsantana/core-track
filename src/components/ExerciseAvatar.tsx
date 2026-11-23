@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Timer,
   Dumbbell,
@@ -10,6 +10,7 @@ import {
   Wind,
   Compass,
   Sparkles,
+  Maximize2,
 } from 'lucide-react';
 import { MeasurementType, ThemeColor } from '../types';
 
@@ -20,6 +21,8 @@ interface ExerciseAvatarProps {
   themeColor?: ThemeColor;
   iconName?: string;
   size?: 'sm' | 'md' | 'lg';
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  showZoomHint?: boolean;
 }
 
 const SIZE_MAP = {
@@ -66,8 +69,14 @@ export function ExerciseAvatar({
   themeColor,
   iconName = 'dumbbell',
   size = 'md',
+  onClick,
+  showZoomHint = true,
 }: ExerciseAvatarProps) {
   const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
 
   const colorClass =
     themeColor === 'indigo' || measurementType === 'interval_based'
@@ -78,27 +87,51 @@ export function ExerciseAvatar({
           ? 'bg-modality-time-soft text-modality-time border-modality-time-border'
           : 'bg-modality-reps-soft text-modality-reps border-modality-reps-border';
 
-  if (imageUrl && !imgError) {
-    return (
-      <div
-        className={`${SIZE_MAP[size]} rounded-full overflow-hidden border border-border-token bg-white shrink-0 flex items-center justify-center`}
-      >
-        <img
-          src={imageUrl}
-          alt={name}
-          loading="lazy"
-          onError={() => setImgError(true)}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    );
-  }
+  const hasPhoto = Boolean(imageUrl && !imgError);
 
-  return (
+  const circleContent = hasPhoto ? (
     <div
-      className={`${SIZE_MAP[size]} rounded-full border flex items-center justify-center shrink-0 ${colorClass}`}
+      className={`${SIZE_MAP[size]} rounded-full overflow-hidden border border-border-token bg-white flex items-center justify-center ${
+        onClick ? 'group-hover:border-modality-cardio transition-colors' : ''
+      }`}
+    >
+      <img
+        src={imageUrl}
+        alt={name}
+        loading="lazy"
+        onError={() => setImgError(true)}
+        className="w-full h-full object-cover"
+      />
+    </div>
+  ) : (
+    <div
+      className={`${SIZE_MAP[size]} rounded-full border flex items-center justify-center ${colorClass}`}
     >
       {renderExerciseIcon(iconName, ICON_SIZE[size])}
     </div>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`Visualizar foto e detalhes de ${name}`}
+        title={`Visualizar ${name}`}
+        className="relative group shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-modality-cardio cursor-pointer"
+      >
+        {circleContent}
+        {showZoomHint && size !== 'sm' && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-surface border border-border-token shadow-sm flex items-center justify-center text-ink-secondary group-hover:text-modality-cardio transition-colors"
+            aria-hidden="true"
+          >
+            <Maximize2 className="w-2.5 h-2.5" />
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return <div className="shrink-0">{circleContent}</div>;
 }

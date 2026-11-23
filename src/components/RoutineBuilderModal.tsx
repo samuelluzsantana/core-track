@@ -4,6 +4,7 @@ import { X, Plus, Trash2, Check, Loader2 } from 'lucide-react';
 import { CatalogExercise, WorkoutRoutineItem } from '../types';
 import { useAppData } from '../contexts/AppDataContext';
 import { ExerciseAvatar } from './ExerciseAvatar';
+import { ExerciseMediaModal } from './ExerciseMediaModal';
 import { MODALITY_LABELS } from '../data/seedCatalog';
 
 interface RoutineBuilderModalProps {
@@ -17,6 +18,7 @@ export function RoutineBuilderModal({ isOpen, onClose }: RoutineBuilderModalProp
   const [description, setDescription] = useState('');
   const [selectedItems, setSelectedItems] = useState<WorkoutRoutineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [mediaPreview, setMediaPreview] = useState<CatalogExercise | null>(null);
 
   const toggleExercise = (ex: CatalogExercise) => {
     const exists = selectedItems.some(
@@ -177,11 +179,9 @@ export function RoutineBuilderModal({ isOpen, onClose }: RoutineBuilderModalProp
                       (i) => i.catalogId === ex.id || i.exerciseName === ex.name
                     );
                     return (
-                      <button
+                      <div
                         key={ex.id}
-                        type="button"
-                        onClick={() => toggleExercise(ex)}
-                        className="w-full p-3 flex items-center gap-3 text-left hover:bg-surface-hover transition-colors"
+                        className="p-3 flex items-center gap-3 hover:bg-surface-hover transition-colors"
                       >
                         <ExerciseAvatar
                           name={ex.name}
@@ -190,29 +190,36 @@ export function RoutineBuilderModal({ isOpen, onClose }: RoutineBuilderModalProp
                           themeColor={ex.themeColor}
                           iconName={ex.iconName}
                           size="sm"
+                          onClick={() => setMediaPreview(ex)}
                         />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-ink truncate">
-                            {ex.name}
-                          </div>
-                          <div className="text-[11px] text-ink-muted">
-                            {MODALITY_LABELS[ex.measurementType]}
-                          </div>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center border ${
-                            selected
-                              ? 'bg-modality-cardio text-white border-modality-cardio'
-                              : 'bg-subtle text-ink-muted border-border-token'
-                          }`}
+                        <button
+                          type="button"
+                          onClick={() => toggleExercise(ex)}
+                          className="flex-1 min-w-0 flex items-center gap-3 text-left"
                         >
-                          {selected ? (
-                            <Check className="w-3.5 h-3.5" />
-                          ) : (
-                            <Plus className="w-3.5 h-3.5" />
-                          )}
-                        </div>
-                      </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-ink truncate">
+                              {ex.name}
+                            </div>
+                            <div className="text-[11px] text-ink-muted">
+                              {MODALITY_LABELS[ex.measurementType]}
+                            </div>
+                          </div>
+                          <div
+                            className={`w-6 h-6 rounded-full flex items-center justify-center border ${
+                              selected
+                                ? 'bg-modality-cardio text-white border-modality-cardio'
+                                : 'bg-subtle text-ink-muted border-border-token'
+                            }`}
+                          >
+                            {selected ? (
+                              <Check className="w-3.5 h-3.5" />
+                            ) : (
+                              <Plus className="w-3.5 h-3.5" />
+                            )}
+                          </div>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -232,6 +239,11 @@ export function RoutineBuilderModal({ isOpen, onClose }: RoutineBuilderModalProp
               </button>
             </form>
           </motion.div>
+
+          <ExerciseMediaModal
+            exercise={mediaPreview}
+            onClose={() => setMediaPreview(null)}
+          />
         </>
       )}
     </AnimatePresence>

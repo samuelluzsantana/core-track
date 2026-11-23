@@ -33,6 +33,7 @@ import {
 import { AnimatedChecklist, ChecklistItem } from '../components/ui/AnimatedChecklist';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { ExerciseAvatar } from '../components/ExerciseAvatar';
+import { ExerciseMediaModal } from '../components/ExerciseMediaModal';
 import { IMPACT_LABELS, MODALITY_LABELS, SEED_CATALOG } from '../data/seedCatalog';
 
 function playTone(freq = 660, durationMs = 140) {
@@ -121,9 +122,10 @@ export function Train() {
     [selectedExercise, profile, logs, ipc]
   );
 
-  // ── Shared feedback state ──
+  // ── Shared feedback & preview state ──
   const [lastSavedLog, setLastSavedLog] = useState<WorkoutLog | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [previewExercise, setPreviewExercise] = useState<CatalogExercise | null>(null);
 
   // ── TIME-BASED state ──
   const [timeMode, setTimeMode] = useState<'progressao' | 'livre'>('progressao');
@@ -455,6 +457,7 @@ export function Train() {
           themeColor={selectedExercise.themeColor}
           iconName={selectedExercise.iconName}
           size="lg"
+          onClick={() => setPreviewExercise(selectedExercise)}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -1094,6 +1097,11 @@ export function Train() {
         exerciseName={selectedExercise.name}
         onClose={() => setShowFeedback(false)}
         onSubmit={handleFeedbackSubmit}
+      />
+
+      <ExerciseMediaModal
+        exercise={previewExercise}
+        onClose={() => setPreviewExercise(null)}
       />
     </div>
   );

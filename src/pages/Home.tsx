@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Flame,
   Timer,
@@ -26,7 +27,9 @@ import {
 } from '../utils/ipcAlgorithm';
 import { NumberTicker } from '../components/ui/NumberTicker';
 import { ExerciseAvatar } from '../components/ExerciseAvatar';
+import { ExerciseMediaModal } from '../components/ExerciseMediaModal';
 import { SEED_CATALOG } from '../data/seedCatalog';
+import { CatalogExercise } from '../types';
 
 function IPCRing({
   percentage,
@@ -94,6 +97,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { profile, catalog, routines, logs, ipc, setThemeAndSync } = useAppData();
   const { resolvedTheme } = useTheme();
+  const [mediaPreview, setMediaPreview] = useState<CatalogExercise | null>(null);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -336,6 +340,23 @@ export default function Home() {
                     featuredRoutine.items[0]?.measurementType || 'reps_based'
                   }
                   size="md"
+                  onClick={() => {
+                    const first = featuredRoutine.items[0];
+                    if (!first) return;
+                    const found =
+                      catalog.find(
+                        (c) =>
+                          c.id === first.catalogId ||
+                          (first.externalId && c.externalId === first.externalId) ||
+                          c.name === first.exerciseName
+                      ) ||
+                      SEED_CATALOG.find(
+                        (c) =>
+                          c.id === first.catalogId ||
+                          (first.externalId && c.externalId === first.externalId)
+                      );
+                    if (found) setMediaPreview(found);
+                  }}
                 />
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-modality-reps">
@@ -510,6 +531,19 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
+
+      <ExerciseMediaModal
+        exercise={mediaPreview}
+        onClose={() => setMediaPreview(null)}
+        onStartTraining={
+          mediaPreview && !getExerciseSafetyStatus(mediaPreview, ipc, catalog).locked
+            ? (ex) => {
+                setMediaPreview(null);
+                navigate(`/train?exerciseId=${ex.id}`);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }
