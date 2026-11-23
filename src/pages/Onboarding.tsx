@@ -6,9 +6,11 @@ import {
   Target,
   Zap,
   ChevronRight,
+  ChevronLeft,
   AlertTriangle,
   Shield,
   Loader2,
+  Check,
 } from 'lucide-react';
 import { useAppData } from '../contexts/AppDataContext';
 import { ExperienceLevel, Objective, PainLevel } from '../types';
@@ -22,8 +24,10 @@ export function Onboarding() {
   const [objective, setObjective] = useState<Objective>('fortalecimento');
   const [experience, setExperience] = useState<ExperienceLevel>('iniciante');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleNext = async () => {
+    setSaveError(null);
     if (step < 3) {
       setStep((s) => s + 1);
       return;
@@ -37,6 +41,12 @@ export function Onboarding() {
         onboardingCompleted: true,
       });
       navigate('/');
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível salvar seu perfil. Tente novamente.';
+      setSaveError(msg);
     } finally {
       setSaving(false);
     }
@@ -168,13 +178,16 @@ export function Onboarding() {
                       <button
                         key={opt.id}
                         type="button"
+                        aria-pressed={active}
                         onClick={() => setObjective(opt.id)}
-                        className={`w-full p-4 rounded-2xl surface-card flex items-center gap-3.5 text-left transition-all ${
-                          active ? 'border-modality-reps ring-1 ring-modality-reps' : ''
+                        className={`w-full p-4 rounded-2xl surface-card flex items-center gap-3.5 text-left transition-all cursor-pointer ${
+                          active
+                            ? 'bg-modality-reps-soft border-modality-reps ring-1 ring-modality-reps'
+                            : 'hover:border-border-strong'
                         }`}
                       >
                         <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                             active
                               ? 'bg-modality-reps text-white'
                               : 'bg-subtle text-ink-muted'
@@ -182,7 +195,7 @@ export function Onboarding() {
                         >
                           <Icon className="w-5 h-5" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <div className="font-display font-bold text-sm text-ink">
                             {opt.label}
                           </div>
@@ -190,6 +203,11 @@ export function Onboarding() {
                             {opt.desc}
                           </div>
                         </div>
+                        {active && (
+                          <div className="w-5 h-5 rounded-full bg-modality-reps text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3" strokeWidth={3} />
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -245,20 +263,40 @@ export function Onboarding() {
                       <button
                         key={opt.id}
                         type="button"
+                        aria-pressed={active}
                         onClick={() => setExperience(opt.id)}
-                        className={`w-full p-4 rounded-2xl surface-card text-left transition-all ${
-                          active ? 'border-modality-cardio ring-1 ring-modality-cardio' : ''
+                        className={`w-full p-4 rounded-2xl surface-card text-left transition-all cursor-pointer ${
+                          active
+                            ? 'bg-modality-cardio-soft border-modality-cardio ring-1 ring-modality-cardio'
+                            : 'hover:border-border-strong'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-display font-bold text-sm text-ink">
-                            {opt.label}
-                          </span>
-                          <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-modality-cardio-soft text-modality-cardio">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                active
+                                  ? 'bg-modality-cardio border-modality-cardio text-white'
+                                  : 'border-border-strong bg-surface'
+                              }`}
+                            >
+                              {active && <Check className="w-3 h-3" strokeWidth={3} />}
+                            </div>
+                            <span className="font-display font-bold text-sm text-ink">
+                              {opt.label}
+                            </span>
+                          </div>
+                          <span
+                            className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                              active
+                                ? 'bg-surface text-modality-cardio border border-modality-cardio-border'
+                                : 'bg-modality-cardio-soft text-modality-cardio'
+                            }`}
+                          >
                             {opt.inc}
                           </span>
                         </div>
-                        <p className="text-xs text-ink-muted mt-1">{opt.desc}</p>
+                        <p className="text-xs text-ink-muted mt-1.5 pl-7">{opt.desc}</p>
                       </button>
                     );
                   })}
@@ -268,22 +306,40 @@ export function Onboarding() {
           </AnimatePresence>
         </div>
 
-        <div className="p-6 bg-canvas border-t border-border-token">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleNext}
-            className="w-full py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <span>{step === 3 ? 'Começar Treinos' : 'Continuar'}</span>
-                <ChevronRight className="w-4 h-4" />
-              </>
+        <div className="p-6 bg-canvas border-t border-border-token space-y-3">
+          {saveError && (
+            <div className="p-3 rounded-xl bg-modality-danger-soft border border-modality-danger-border text-xs font-medium text-modality-danger text-center">
+              {saveError}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            {step > 1 && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setStep((s) => Math.max(1, s - 1))}
+                className="px-4 py-3.5 rounded-xl surface-card text-ink-secondary font-semibold text-sm flex items-center justify-center gap-1 hover:text-ink disabled:opacity-50"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Voltar
+              </button>
             )}
-          </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleNext}
+              className="flex-1 py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <span>{step === 3 ? 'Começar Treinos' : 'Continuar'}</span>
+                  <ChevronRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

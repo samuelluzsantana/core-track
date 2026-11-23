@@ -117,63 +117,65 @@ h1, h2, h3, .font-display {
   scrollbar-width: none;
 }
 
-/* Layered Card Primitives */
-.surface-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-card);
-}
+/* Layered Card Primitives (must live in @layer components so Tailwind utilities can override border/bg/shadow/ring) */
+@layer components {
+  .surface-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+  }
 
-.surface-subtle {
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-subtle);
-}
+  .surface-subtle {
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+  }
 
-.glass-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-card);
-}
+  .glass-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+  }
 
-.glass-card-light {
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-subtle);
-}
+  .glass-card-light {
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+  }
 
-/* Safety & Impact Badges */
-.safety-badge {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  line-height: 1.4;
-}
+  /* Safety & Impact Badges */
+  .safety-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.4;
+  }
 
-.safety-mobility {
-  background-color: var(--accent-mobility-soft);
-  color: var(--accent-mobility);
-  border: 1px solid var(--accent-mobility-border);
-}
+  .safety-mobility {
+    background-color: var(--accent-mobility-soft);
+    color: var(--accent-mobility);
+    border: 1px solid var(--accent-mobility-border);
+  }
 
-.safety-low {
-  background-color: var(--accent-reps-soft);
-  color: var(--accent-reps);
-  border: 1px solid var(--accent-reps-border);
-}
+  .safety-low {
+    background-color: var(--accent-reps-soft);
+    color: var(--accent-reps);
+    border: 1px solid var(--accent-reps-border);
+  }
 
-.safety-medium {
-  background-color: var(--accent-time-soft);
-  color: var(--accent-time);
-  border: 1px solid var(--accent-time-border);
-}
+  .safety-medium {
+    background-color: var(--accent-time-soft);
+    color: var(--accent-time);
+    border: 1px solid var(--accent-time-border);
+  }
 
-.safety-high {
-  background-color: var(--accent-cardio-soft);
-  color: var(--accent-cardio);
-  border: 1px solid var(--accent-cardio-border);
+  .safety-high {
+    background-color: var(--accent-cardio-soft);
+    color: var(--accent-cardio);
+    border: 1px solid var(--accent-cardio-border);
+  }
 }
 
 /* Custom Pain Range Slider */
