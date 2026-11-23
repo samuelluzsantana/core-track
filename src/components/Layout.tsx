@@ -1,16 +1,47 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, PlayCircle, Layers, BarChart2, Settings } from 'lucide-react';
+import { Dock, DockNavItem } from './ui/Dock';
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navItems = [
-    { path: '/', icon: Home, label: 'Início' },
-    { path: '/train', altPath: '/plank', icon: PlayCircle, label: 'Treinar' },
-    { path: '/exercises', icon: Layers, label: 'Biblioteca' },
-    { path: '/progress', icon: BarChart2, label: 'Progresso' },
-    { path: '/settings', icon: Settings, label: 'Ajustes' },
+  const navItems: DockNavItem[] = [
+    {
+      id: 'home',
+      label: 'Início',
+      icon: <Home className="w-5 h-5" />,
+      active: location.pathname === '/',
+      onClick: () => navigate('/'),
+    },
+    {
+      id: 'train',
+      label: 'Treinar',
+      icon: <PlayCircle className="w-5 h-5" />,
+      active: location.pathname === '/train' || location.pathname === '/plank',
+      onClick: () => navigate('/train'),
+    },
+    {
+      id: 'exercises',
+      label: 'Biblioteca',
+      icon: <Layers className="w-5 h-5" />,
+      active: location.pathname === '/exercises',
+      onClick: () => navigate('/exercises'),
+    },
+    {
+      id: 'progress',
+      label: 'Progresso',
+      icon: <BarChart2 className="w-5 h-5" />,
+      active: location.pathname === '/progress',
+      onClick: () => navigate('/progress'),
+    },
+    {
+      id: 'settings',
+      label: 'Ajustes',
+      icon: <Settings className="w-5 h-5" />,
+      active: location.pathname === '/settings',
+      onClick: () => navigate('/settings'),
+    },
   ];
 
   return (
@@ -20,46 +51,13 @@ export function Layout() {
           <Outlet />
         </main>
 
-        {/* Ergonomic Bottom Navigation Bar */}
+        {/* Ergonomic React Bits Magnification Dock */}
         <nav
           aria-label="Navegação principal"
           className="sticky bottom-0 left-0 right-0 z-40 border-t border-border-token backdrop-blur-xl pb-safe"
           style={{ backgroundColor: 'var(--bg-dock)' }}
         >
-          <div className="grid grid-cols-5 px-2 py-2 gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                location.pathname === item.path ||
-                (item.altPath && location.pathname === item.altPath);
-
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => navigate(item.path)}
-                  className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all min-h-[50px] ${
-                    isActive
-                      ? 'text-modality-time bg-modality-time-soft/70'
-                      : 'text-ink-muted hover:text-ink hover:bg-subtle/60'
-                  }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 transition-transform ${
-                      isActive ? 'scale-105 stroke-[2.3]' : 'stroke-[1.9]'
-                    }`}
-                  />
-                  <span
-                    className={`text-[10px] mt-1 tracking-tight ${
-                      isActive ? 'font-bold' : 'font-medium'
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <Dock items={navItems} />
         </nav>
       </div>
     </div>

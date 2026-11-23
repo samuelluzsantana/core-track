@@ -1,10 +1,12 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HeroUIProvider } from '@heroui/system';
 import { ServiceProvider, useServiceStatus } from './contexts/ServiceContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AppDataProvider, useAppData } from './contexts/AppDataContext';
 import { DevToolbar } from './components/dev/DevToolbar';
+import { ClickSpark } from './components/ui/ClickSpark';
 import { Onboarding } from './pages/Onboarding';
 import { Login } from './pages/Login';
 import { Layout } from './components/Layout';
@@ -92,21 +94,34 @@ function AppRoutes() {
   );
 }
 
+function ThemedAppShell() {
+  const { resolvedTheme } = useTheme();
+  const sparkColor = resolvedTheme === 'dark' ? '#F59E0B' : '#EA580C';
+
+  return (
+    <HeroUIProvider>
+      <ClickSpark sparkColor={sparkColor}>
+        <ServiceProvider>
+          <ServiceGate>
+            <AuthProvider>
+              <AppDataProvider>
+                <BrowserRouter>
+                  <AppRoutes />
+                  <DevToolbar />
+                </BrowserRouter>
+              </AppDataProvider>
+            </AuthProvider>
+          </ServiceGate>
+        </ServiceProvider>
+      </ClickSpark>
+    </HeroUIProvider>
+  );
+}
+
 export function App() {
   return (
     <ThemeProvider>
-      <ServiceProvider>
-        <ServiceGate>
-          <AuthProvider>
-            <AppDataProvider>
-              <BrowserRouter>
-                <AppRoutes />
-                <DevToolbar />
-              </BrowserRouter>
-            </AppDataProvider>
-          </AuthProvider>
-        </ServiceGate>
-      </ServiceProvider>
+      <ThemedAppShell />
     </ThemeProvider>
   );
 }

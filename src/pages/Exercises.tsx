@@ -14,6 +14,8 @@ import {
   Info,
   Maximize2,
 } from 'lucide-react';
+import { Input } from '@heroui/input';
+import { Tabs, Tab } from '@heroui/tabs';
 import { useAppData } from '../contexts/AppDataContext';
 import { CatalogExercise } from '../types';
 import { getExerciseSafetyStatus, getExercisePR } from '../utils/ipcAlgorithm';
@@ -21,6 +23,8 @@ import { ExerciseAvatar } from '../components/ExerciseAvatar';
 import { ExerciseMediaModal } from '../components/ExerciseMediaModal';
 import { AddExerciseModal } from '../components/AddExerciseModal';
 import { RoutineBuilderModal } from '../components/RoutineBuilderModal';
+import { BlurFade } from '../components/ui/BlurFade';
+import { MagicCard } from '../components/ui/MagicCard';
 import { CATEGORY_LABELS, IMPACT_LABELS, MODALITY_LABELS } from '../data/seedCatalog';
 
 export function Exercises() {
@@ -72,7 +76,7 @@ export function Exercises() {
   return (
     <div className="px-5 pt-7 pb-8 space-y-5">
       {/* Top Header */}
-      <div className="flex items-center justify-between gap-3">
+      <BlurFade delay={0.02} className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight">
             Biblioteca & Rotinas
@@ -84,38 +88,30 @@ export function Exercises() {
         <button
           type="button"
           onClick={() => openAddModal('explore')}
-          className="px-3.5 py-2 rounded-xl bg-modality-cardio text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0"
+          className="px-3.5 py-2 rounded-xl bg-modality-cardio text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0 hover:opacity-95 transition-opacity"
         >
           <Plus className="w-4 h-4" />
           Adicionar
         </button>
-      </div>
+      </BlurFade>
 
-      {/* Segmented Switcher: Catálogo vs Rotinas */}
-      <div className="grid grid-cols-2 p-1 rounded-xl bg-subtle border border-border-token">
-        <button
-          type="button"
-          onClick={() => setViewMode('catalog')}
-          className={`py-2 rounded-lg text-xs font-bold transition-all ${
-            viewMode === 'catalog'
-              ? 'bg-surface text-ink shadow-sm'
-              : 'text-ink-muted hover:text-ink'
-          }`}
-        >
-          Exercícios ({catalog.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode('routines')}
-          className={`py-2 rounded-lg text-xs font-bold transition-all ${
-            viewMode === 'routines'
-              ? 'bg-surface text-ink shadow-sm'
-              : 'text-ink-muted hover:text-ink'
-          }`}
-        >
-          Rotinas ({routines.length})
-        </button>
-      </div>
+      {/* HeroUI Tabs: Catálogo vs Rotinas */}
+      <Tabs
+        fullWidth
+        aria-label="Modo de visualização da biblioteca"
+        selectedKey={viewMode}
+        onSelectionChange={(key) => setViewMode(key as 'catalog' | 'routines')}
+        radius="lg"
+        classNames={{
+          tabList: 'bg-subtle p-1 border border-border-token',
+          cursor: 'bg-surface shadow-sm',
+          tab: 'h-9 text-xs font-bold',
+          tabContent: 'group-data-[selected=true]:text-ink text-ink-muted',
+        }}
+      >
+        <Tab key="catalog" title={`Exercícios (${catalog.length})`} />
+        <Tab key="routines" title={`Rotinas (${routines.length})`} />
+      </Tabs>
 
       {/* Adaptive Safety Banner */}
       {ipc.highImpactBlocked && (
@@ -130,18 +126,22 @@ export function Exercises() {
 
       {viewMode === 'catalog' ? (
         <>
-          {/* Search + Category Filter Pills (Ref Image 1) */}
+          {/* HeroUI Search + Category Filter Pills */}
           <div className="space-y-3">
-            <div className="relative">
-              <Search className="w-4 h-4 text-ink-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar exercício, músculo ou equipamento..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink placeholder:text-ink-muted outline-none focus:border-modality-cardio"
-              />
-            </div>
+            <Input
+              isClearable
+              value={search}
+              onValueChange={setSearch}
+              placeholder="Buscar exercício, músculo ou equipamento..."
+              variant="bordered"
+              radius="lg"
+              startContent={<Search className="w-4 h-4 text-ink-muted shrink-0" />}
+              classNames={{
+                inputWrapper:
+                  'bg-surface border-border-token hover:border-border-strong group-data-[focus=true]:border-modality-cardio',
+                input: 'text-sm text-ink placeholder:text-ink-muted',
+              }}
+            />
 
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               {[

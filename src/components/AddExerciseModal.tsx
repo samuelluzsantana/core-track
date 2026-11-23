@@ -18,6 +18,11 @@ import {
   Wind,
   Maximize2,
 } from 'lucide-react';
+import { Form } from '@heroui/form';
+import { Input, Textarea } from '@heroui/input';
+import { Button } from '@heroui/button';
+import { Select, SelectItem } from '@heroui/select';
+import { Tabs, Tab } from '@heroui/tabs';
 import {
   CatalogExercise,
   ExerciseCategory,
@@ -258,51 +263,61 @@ export function AddExerciseModal({
               </button>
             </div>
 
-            {/* Segmented Tabs */}
+            {/* HeroUI Tabs */}
             <div className="px-5 pt-3 pb-2 bg-surface border-b border-border-token">
-              <div className="grid grid-cols-2 p-1 rounded-xl bg-subtle">
-                <button
-                  type="button"
-                  onClick={() => setTab('explore')}
-                  className={`py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                    tab === 'explore'
-                      ? 'bg-surface text-ink shadow-sm'
-                      : 'text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  Explorar Biblioteca
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab('custom')}
-                  className={`py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                    tab === 'custom'
-                      ? 'bg-surface text-ink shadow-sm'
-                      : 'text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Criar Customizado
-                </button>
-              </div>
+              <Tabs
+                fullWidth
+                aria-label="Modo de adição de exercício"
+                selectedKey={tab}
+                onSelectionChange={(key) => setTab(key as 'explore' | 'custom')}
+                radius="lg"
+                classNames={{
+                  tabList: 'bg-subtle p-1',
+                  cursor: 'bg-surface shadow-sm',
+                  tab: 'h-9 text-xs font-semibold',
+                  tabContent: 'group-data-[selected=true]:text-ink text-ink-muted',
+                }}
+              >
+                <Tab
+                  key="explore"
+                  title={
+                    <span className="flex items-center gap-1.5">
+                      <Database className="w-3.5 h-3.5" />
+                      Explorar Biblioteca
+                    </span>
+                  }
+                />
+                <Tab
+                  key="custom"
+                  title={
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Criar Customizado
+                    </span>
+                  }
+                />
+              </Tabs>
             </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar pb-safe">
               {tab === 'explore' ? (
                 <>
-                  {/* Search input */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-ink-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Buscar ex: Jump Rope, Plank, Squat..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink placeholder:text-ink-muted outline-none focus:border-modality-cardio"
-                    />
-                  </div>
+                  {/* HeroUI Search input */}
+                  <Input
+                    isClearable
+                    value={query}
+                    onValueChange={setQuery}
+                    placeholder="Buscar ex: Jump Rope, Plank, Squat..."
+                    variant="bordered"
+                    radius="lg"
+                    startContent={<Search className="w-4 h-4 text-ink-muted shrink-0" />}
+                    classNames={{
+                      inputWrapper:
+                        'bg-surface border-border-token hover:border-border-strong group-data-[focus=true]:border-modality-cardio',
+                      input: 'text-sm text-ink placeholder:text-ink-muted',
+                    }}
+                  />
 
                   {/* Category + Provider filter pills */}
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">

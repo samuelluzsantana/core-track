@@ -17,11 +17,16 @@ import {
   Download,
   Share,
 } from 'lucide-react';
+import { Tabs, Tab } from '@heroui/tabs';
+import { Button } from '@heroui/button';
 import { useAppData } from '../contexts/AppDataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getLombarLevelInfo, LOMBAR_LEVELS } from '../utils/ipcAlgorithm';
 import { usePwaInstall } from '../utils/pwaInstall';
+import { BlurFade } from '../components/ui/BlurFade';
+import { MagicCard } from '../components/ui/MagicCard';
+import { ShimmerButton } from '../components/ui/ShimmerButton';
 import { ExperienceLevel, Objective, ThemePreference } from '../types';
 
 export function Settings() {
@@ -78,49 +83,65 @@ export function Settings() {
         </button>
       </div>
 
-      {/* Theme Switcher: Claro / Escuro / Sistema */}
-      <section className="space-y-2.5">
+      {/* Theme Switcher: HeroUI Tabs */}
+      <BlurFade delay={0.04} className="space-y-2.5">
         <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
           Aparência & Tema
         </h2>
-        <div className="surface-card rounded-2xl p-1.5 grid grid-cols-3 gap-1.5">
-          {(
-            [
-              { id: 'light', label: 'Claro', icon: Sun },
-              { id: 'dark', label: 'Escuro', icon: Moon },
-              { id: 'system', label: 'Sistema', icon: Monitor },
-            ] as const
-          ).map((opt) => {
-            const Icon = opt.icon;
-            const active = preference === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  setThemeAndSync(opt.id as ThemePreference);
-                  showToast(`Tema ${opt.label} ativado`);
-                }}
-                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  active
-                    ? 'bg-modality-cardio text-white shadow-sm'
-                    : 'text-ink-secondary hover:bg-subtle'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+        <Tabs
+          fullWidth
+          aria-label="Selecionar tema"
+          selectedKey={preference}
+          onSelectionChange={(key) => {
+            const labelMap = { light: 'Claro', dark: 'Escuro', system: 'Sistema' };
+            const pref = key as ThemePreference;
+            setThemeAndSync(pref);
+            showToast(`Tema ${labelMap[pref]} ativado`);
+          }}
+          radius="lg"
+          classNames={{
+            tabList: 'surface-card p-1.5 rounded-2xl',
+            cursor: 'bg-modality-cardio shadow-sm rounded-xl',
+            tab: 'h-10 text-xs font-bold',
+            tabContent: 'group-data-[selected=true]:text-white text-ink-secondary',
+          }}
+        >
+          <Tab
+            key="light"
+            title={
+              <span className="flex items-center gap-1.5">
+                <Sun className="w-4 h-4" />
+                Claro
+              </span>
+            }
+          />
+          <Tab
+            key="dark"
+            title={
+              <span className="flex items-center gap-1.5">
+                <Moon className="w-4 h-4" />
+                Escuro
+              </span>
+            }
+          />
+          <Tab
+            key="system"
+            title={
+              <span className="flex items-center gap-1.5">
+                <Monitor className="w-4 h-4" />
+                Sistema
+              </span>
+            }
+          />
+        </Tabs>
+      </BlurFade>
 
       {/* IPC Engine Overview */}
-      <section className="space-y-2.5">
+      <BlurFade delay={0.08} className="space-y-2.5">
         <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
           Motor Adaptativo (IPC)
         </h2>
-        <div className="surface-card rounded-2xl p-4 space-y-4">
+        <MagicCard className="rounded-2xl p-4 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="font-display font-bold text-base text-ink">
@@ -201,8 +222,8 @@ export function Settings() {
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </MagicCard>
+      </BlurFade>
 
       {/* Profile Calibration */}
       <section className="space-y-2.5">

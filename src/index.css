@@ -176,6 +176,46 @@ h1, h2, h3, .font-display {
     color: var(--accent-cardio);
     border: 1px solid var(--accent-cardio-border);
   }
+
+  /* Magic UI Border Beam */
+  .border-beam-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: var(--beam-border, 1.5px);
+    pointer-events: none;
+    overflow: hidden;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .border-beam-overlay::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 210%;
+    aspect-ratio: 1 / 1;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg 285deg,
+      var(--beam-from, #ea580c) 325deg,
+      var(--beam-to, #4f46e5) 355deg,
+      transparent 360deg
+    );
+    animation: border-beam-spin var(--beam-duration, 7s) linear infinite;
+    animation-delay: var(--beam-delay, 0s);
+  }
+}
+
+@keyframes border-beam-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 /* Custom Pain Range Slider */

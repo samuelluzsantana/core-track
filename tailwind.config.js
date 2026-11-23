@@ -1,7 +1,13 @@
+import { heroui } from '@heroui/theme';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class', '[data-theme="dark"]'],
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: [
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {
       colors: {
@@ -58,7 +64,65 @@ export default {
         '3xl': '1.375rem',
         '4xl': '1.75rem',
       },
+      keyframes: {
+        'shimmer-sweep': {
+          '0%': { transform: 'translateX(-100%)' },
+          '60%, 100%': { transform: 'translateX(200%)' },
+        },
+      },
+      animation: {
+        'shimmer-sweep': 'shimmer-sweep 2.8s ease-in-out infinite',
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    heroui({
+      themes: {
+        light: {
+          colors: {
+            background: '#F4F5F7',
+            foreground: '#0F172A',
+            content1: '#FFFFFF',
+            content2: '#EAEDF2',
+            default: {
+              100: '#EAEDF2',
+              200: '#E4E4E7',
+              foreground: '#0F172A',
+            },
+            primary: {
+              DEFAULT: '#EA580C',
+              foreground: '#FFFFFF',
+            },
+            secondary: {
+              DEFAULT: '#0D9488',
+              foreground: '#FFFFFF',
+            },
+            focus: '#EA580C',
+          },
+        },
+        dark: {
+          colors: {
+            background: '#0D0F14',
+            foreground: '#F1F5F9',
+            content1: '#181C26',
+            content2: '#141821',
+            default: {
+              100: '#141821',
+              200: '#262B3A',
+              foreground: '#F1F5F9',
+            },
+            primary: {
+              DEFAULT: '#F59E0B',
+              foreground: '#0D0F14',
+            },
+            secondary: {
+              DEFAULT: '#14B8A6',
+              foreground: '#0D0F14',
+            },
+            focus: '#F59E0B',
+          },
+        },
+      },
+    }),
+  ],
 };

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Check, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Check } from 'lucide-react';
+import { Form } from '@heroui/form';
+import { Input } from '@heroui/input';
+import { Button } from '@heroui/button';
 import { CatalogExercise, WorkoutRoutineItem } from '../types';
 import { useAppData } from '../contexts/AppDataContext';
 import { ExerciseAvatar } from './ExerciseAvatar';
@@ -102,36 +105,43 @@ export function RoutineBuilderModal({ isOpen, onClose }: RoutineBuilderModalProp
               </button>
             </div>
 
-            <form
+            <Form
               onSubmit={handleSave}
-              className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar pb-safe"
+              validationBehavior="native"
+              className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 no-scrollbar pb-safe w-full"
             >
-              <div>
-                <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                  Nome da Rotina *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Manhã Core + Pular Corda"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none focus:border-modality-cardio"
-                />
-              </div>
+              <Input
+                isRequired
+                label="Nome da Rotina"
+                labelPlacement="outside"
+                placeholder="Ex: Manhã Core + Pular Corda"
+                value={name}
+                onValueChange={setName}
+                variant="bordered"
+                radius="lg"
+                classNames={{
+                  label: 'text-xs font-semibold text-ink-secondary',
+                  inputWrapper:
+                    'bg-surface border-border-token hover:border-border-strong group-data-[focus=true]:border-modality-cardio',
+                  input: 'text-sm text-ink placeholder:text-ink-muted',
+                }}
+              />
 
-              <div>
-                <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                  Descrição (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Ativação lombar seguida de cardio leve"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none"
-                />
-              </div>
+              <Input
+                label="Descrição (opcional)"
+                labelPlacement="outside"
+                placeholder="Ex: Ativação lombar seguida de cardio leve"
+                value={description}
+                onValueChange={setDescription}
+                variant="bordered"
+                radius="lg"
+                classNames={{
+                  label: 'text-xs font-semibold text-ink-secondary',
+                  inputWrapper:
+                    'bg-surface border-border-token hover:border-border-strong group-data-[focus=true]:border-modality-cardio',
+                  input: 'text-sm text-ink placeholder:text-ink-muted',
+                }}
+              />
 
               {selectedItems.length > 0 && (
                 <div>
@@ -225,19 +235,20 @@ export function RoutineBuilderModal({ isOpen, onClose }: RoutineBuilderModalProp
                 </div>
               </div>
 
-              <button
+              <Button
                 type="submit"
-                disabled={saving || !name.trim() || selectedItems.length === 0}
-                className="w-full py-3.5 rounded-xl bg-modality-cardio text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                color="secondary"
+                radius="lg"
+                size="lg"
+                fullWidth
+                isLoading={saving}
+                isDisabled={!name.trim() || selectedItems.length === 0}
+                startContent={!saving ? <Check className="w-4 h-4" /> : undefined}
+                className="font-bold text-sm bg-modality-cardio text-white"
               >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
                 Salvar Rotina
-              </button>
-            </form>
+              </Button>
+            </Form>
           </motion.div>
 
           <ExerciseMediaModal
