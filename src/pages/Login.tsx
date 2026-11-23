@@ -19,7 +19,7 @@ import { useTheme } from '../contexts/ThemeContext';
 type AuthMode = 'login' | 'signup';
 
 export function Login() {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, authError, clearAuthError } = useAuth();
   const { resolvedTheme, toggleQuickTheme } = useTheme();
 
   const [mode, setMode] = useState<AuthMode>('login');
@@ -31,10 +31,13 @@ export function Login() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const displayError = error || authError || '';
+
   const toggleMode = () => {
     setMode((m) => (m === 'login' ? 'signup' : 'login'));
     setError('');
     setSuccess('');
+    clearAuthError();
     setConfirmPassword('');
   };
 
@@ -42,6 +45,7 @@ export function Login() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    clearAuthError();
 
     if (mode === 'signup' && password !== confirmPassword) {
       setError('As senhas não coincidem.');
@@ -79,10 +83,18 @@ export function Login() {
 
   const handleGoogleLogin = async () => {
     setError('');
+    clearAuthError();
     try {
       await signInWithGoogle();
     } catch (err: any) {
-      setError(err?.message || 'Erro ao conectar com Google.');
+      const msg = err?.message || '';
+      if (msg.toLowerCase().includes('provider is not enabled')) {
+        setError(
+          'Login com Google ainda não está habilitado no Supabase. Entre com e-mail e senha ou ative o provedor Google no painel.'
+        );
+      } else {
+        setError(msg || 'Erro ao conectar com Google.');
+      }
     }
   };
 
@@ -129,6 +141,7 @@ export function Login() {
                   setMode(m);
                   setError('');
                   setSuccess('');
+                  clearAuthError();
                 }}
                 className={`py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                   mode === m
@@ -205,9 +218,9 @@ export function Login() {
               )}
             </AnimatePresence>
 
-            {error && (
+            {displayError && (
               <div className="p-3 rounded-xl bg-modality-danger-soft border border-modality-danger-border text-xs font-medium text-modality-danger text-center">
-                {error}
+                {displayError}
               </div>
             )}
 

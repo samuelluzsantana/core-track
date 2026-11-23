@@ -8,6 +8,11 @@ import { Session } from '@supabase/supabase-js';
 import { IAuthService, AuthUser } from '../../config/types';
 import { supabase } from '../../utils/supabase';
 
+function getAuthRedirectUrl(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return `${window.location.origin}/`;
+}
+
 export class RealAuthService implements IAuthService {
   async getCurrentUser(): Promise<AuthUser | null> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -26,7 +31,12 @@ export class RealAuthService implements IAuthService {
   }
 
   async signUp(email: string, password: string): Promise<void> {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const emailRedirectTo = getAuthRedirectUrl();
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: emailRedirectTo ? { emailRedirectTo } : undefined,
+    });
     if (error) throw error;
   }
 
@@ -36,7 +46,11 @@ export class RealAuthService implements IAuthService {
   }
 
   async signInWithGoogle(): Promise<void> {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    const redirectTo = getAuthRedirectUrl();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: redirectTo ? { redirectTo } : undefined,
+    });
     if (error) throw error;
   }
 
