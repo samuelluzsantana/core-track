@@ -155,11 +155,10 @@ export function Exercises() {
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
-                    selectedCategory === cat.id
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${selectedCategory === cat.id
                       ? 'bg-modality-cardio text-white border-modality-cardio'
                       : 'bg-surface text-ink-secondary border-border-token hover:bg-subtle'
-                  }`}
+                    }`}
                 >
                   {cat.label}
                 </button>
@@ -174,11 +173,10 @@ export function Exercises() {
               return (
                 <div
                   key={ex.id}
-                  className={`p-3.5 flex items-center gap-3.5 transition-colors ${
-                    safety.locked
+                  className={`p-3.5 flex items-center gap-3.5 transition-colors ${safety.locked
                       ? 'opacity-65 bg-subtle/40 hover:bg-subtle/70'
                       : 'hover:bg-surface-hover'
-                  }`}
+                    }`}
                 >
                   <ExerciseAvatar
                     name={ex.name}
@@ -370,7 +368,7 @@ export function Exercises() {
                   type="button"
                   onClick={() => setSelectedEx(null)}
                   className="p-2 bg-subtle rounded-full text-ink-muted hover:text-ink"
-                >
+                >oi
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -515,12 +513,12 @@ export function Exercises() {
         onClose={() => setMediaPreview(null)}
         onStartTraining={
           mediaPreview &&
-          !getExerciseSafetyStatus(mediaPreview.exercise, ipc, catalog).locked
+            !getExerciseSafetyStatus(mediaPreview.exercise, ipc, catalog).locked
             ? (ex) => {
-                setMediaPreview(null);
-                setSelectedEx(null);
-                navigate(`/train?exerciseId=${ex.id}`);
-              }
+              setMediaPreview(null);
+              setSelectedEx(null);
+              navigate(`/train?exerciseId=${ex.id}`);
+            }
             : undefined
         }
       />
