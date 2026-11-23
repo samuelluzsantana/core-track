@@ -13,16 +13,21 @@ import {
   AlertTriangle,
   LogOut,
   Check,
+  Smartphone,
+  Download,
+  Share,
 } from 'lucide-react';
 import { useAppData } from '../contexts/AppDataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getLombarLevelInfo, LOMBAR_LEVELS } from '../utils/ipcAlgorithm';
+import { usePwaInstall } from '../utils/pwaInstall';
 import { ExperienceLevel, Objective, ThemePreference } from '../types';
 
 export function Settings() {
   const { user, signOut } = useAuth();
   const { preference } = useTheme();
+  const { isInstalled, canPrompt, isIos, promptInstall } = usePwaInstall();
   const {
     profile,
     ipc,
@@ -300,6 +305,64 @@ export function Settings() {
               })}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Web App / PWA Install */}
+      <section className="space-y-2.5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+          Aplicativo Web (PWA)
+        </h2>
+        <div className="surface-card rounded-2xl p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-modality-time-soft border border-modality-time-border flex items-center justify-center shrink-0">
+                <Smartphone className="w-5 h-5 text-modality-time" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-ink">
+                  CoreTrack na Tela Inicial
+                </div>
+                <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                  {isInstalled
+                    ? 'Executando em modo aplicativo independente.'
+                    : 'Instale como aplicativo no celular ou desktop para acesso rápido.'}
+                </p>
+              </div>
+            </div>
+            {isInstalled && (
+              <span className="px-2.5 py-1 rounded-full bg-modality-mobility-soft border border-modality-mobility-border text-[11px] font-bold text-modality-mobility shrink-0">
+                Instalado
+              </span>
+            )}
+          </div>
+
+          {!isInstalled && canPrompt && (
+            <button
+              type="button"
+              onClick={async () => {
+                const outcome = await promptInstall();
+                if (outcome === 'accepted') {
+                  showToast('Aplicativo instalado!');
+                }
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-modality-time text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm hover:opacity-95 transition-opacity"
+            >
+              <Download className="w-4 h-4" />
+              Adicionar Aplicativo Web
+            </button>
+          )}
+
+          {!isInstalled && !canPrompt && (
+            <div className="rounded-xl bg-subtle p-3 text-xs text-ink-secondary flex items-start gap-2.5 leading-relaxed">
+              <Share className="w-4 h-4 text-modality-time shrink-0 mt-0.5" />
+              <span>
+                {isIos
+                  ? 'No Safari, toque no botão Compartilhar e escolha "Adicionar à Tela de Início".'
+                  : 'Pelo menu do navegador ou barra de endereços, selecione "Instalar aplicativo" ou "Adicionar à tela inicial".'}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

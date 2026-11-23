@@ -2,21 +2,106 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="CoreTrack Hybrid — Plataforma modular e adaptativa para treinos de core, força, mobilidade e cardio/HIIT." />
+
+    <!-- Primary SEO (Google) -->
+    <title>CoreTrack Hybrid — Plataforma Modular de Treinos Adaptativos</title>
+    <meta
+      name="description"
+      content="Treinos híbridos adaptados ao seu corpo: isometria de core, séries de força, mobilidade lombar e cardio/HIIT com ajuste automático pelo seu nível de dor e prontidão."
+    />
+    <meta
+      name="keywords"
+      content="treino de core, prancha isométrica, segurança lombar, treino híbrido, pular corda hiit, mobilidade, tracker de treino, pwa fitness"
+    />
+    <meta name="author" content="CoreTrack Hybrid" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="language" content="pt-BR" />
+    <link rel="canonical" href="https://core-track-zeta.vercel.app/" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Web App / PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="application-name" content="CoreTrack" />
     <meta name="theme-color" content="#F4F5F7" />
-    <meta property="og:title" content="CoreTrack Hybrid — Treinos Adaptativos" />
-    <meta property="og:description" content="Isometria, força, mobilidade e cardio intervalado com motor adaptativo de segurança." />
-    <meta property="og:type" content="website" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <title>CoreTrack Hybrid — Treinos Adaptativos</title>
+    <meta name="apple-mobile-web-app-title" content="CoreTrack" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="msapplication-TileColor" content="#EA580C" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Open Graph (WhatsApp, Telegram, Discord, LinkedIn, Facebook) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CoreTrack Hybrid" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://core-track-zeta.vercel.app/" />
+    <meta property="og:title" content="CoreTrack Hybrid — Treinos Adaptativos" />
+    <meta
+      property="og:description"
+      content="Isometria, força com carga, mobilidade e cardio/HIIT com motor adaptativo de prontidão e segurança lombar."
+    />
+    <meta property="og:image" content="https://core-track-zeta.vercel.app/og-image.png" />
+    <meta property="og:image:secure_url" content="https://core-track-zeta.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="CoreTrack Hybrid — Plataforma modular para treinos de core, força, mobilidade e cardio/HIIT"
+    />
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://core-track-zeta.vercel.app/" />
+    <meta name="twitter:title" content="CoreTrack Hybrid — Treinos Adaptativos" />
+    <meta
+      name="twitter:description"
+      content="Isometria, força com carga, mobilidade e cardio/HIIT com motor adaptativo de prontidão e segurança lombar."
+    />
+    <meta name="twitter:image" content="https://core-track-zeta.vercel.app/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="CoreTrack Hybrid — Plataforma modular para treinos adaptativos"
+    />
+
+    <!-- Structured Data (Google Rich Results) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "CoreTrack Hybrid",
+        "alternateName": "CoreTrack",
+        "url": "https://core-track-zeta.vercel.app/",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "inLanguage": "pt-BR",
+        "description": "Plataforma modular e adaptativa para treinos híbridos de core, força, mobilidade e cardio/HIIT com controle inteligente de prontidão e segurança lombar.",
+        "image": "https://core-track-zeta.vercel.app/og-image.png",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "BRL"
+        }
+      }
+    </script>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Pre-paint Theme Initialization -->
     <script>
       (function () {
         try {
@@ -28,7 +113,13 @@
                 : 'light'
               : pref;
           document.documentElement.setAttribute('data-theme', resolved);
-          if (resolved === 'dark') document.documentElement.classList.add('dark');
+          if (resolved === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+          var metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) {
+            metaTheme.setAttribute('content', resolved === 'dark' ? '#0D0F14' : '#F4F5F7');
+          }
         } catch (e) {}
       })();
     </script>

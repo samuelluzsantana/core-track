@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://core-track-zeta.vercel.app/sitemap.xml
