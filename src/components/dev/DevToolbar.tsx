@@ -146,6 +146,7 @@ export function DevToolbar({ onSwitchScenario }: DevToolbarProps) {
                       } else {
                         localStorage.setItem('coretracker_seed_scenario', s.value);
                         localStorage.removeItem('coretracker_mock_data');
+                        localStorage.removeItem('coretracker_hybrid_mock_v2');
                         window.location.reload();
                       }
                     }}

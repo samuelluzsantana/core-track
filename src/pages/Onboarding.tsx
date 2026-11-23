@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -8,282 +8,283 @@ import {
   ChevronRight,
   AlertTriangle,
   Shield,
+  Loader2,
 } from 'lucide-react';
-import { saveProfile } from '../utils/storage';
-import { PainLevel, Objective, ExperienceLevel } from '../types';
+import { useAppData } from '../contexts/AppDataContext';
+import { ExperienceLevel, Objective, PainLevel } from '../types';
 
 export function Onboarding() {
   const navigate = useNavigate();
+  const { saveProfile } = useAppData();
+
   const [step, setStep] = useState(1);
-  const [painLevel, setPainLevel] = useState<PainLevel>(1);
+  const [painLevel, setPainLevel] = useState<PainLevel>(2);
   const [objective, setObjective] = useState<Objective>('fortalecimento');
   const [experience, setExperience] = useState<ExperienceLevel>('iniciante');
+  const [saving, setSaving] = useState(false);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 3) {
-      setStep(step + 1);
-    } else {
-      saveProfile({
+      setStep((s) => s + 1);
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveProfile({
         painLevel,
         objective,
         experienceLevel: experience,
         onboardingCompleted: true,
       });
       navigate('/');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getPainColor = () => {
-    if (painLevel <= 3) return 'text-green-400';
-    if (painLevel <= 6) return 'text-amber-400';
-    return 'text-red-400';
-  };
-
-  const getPainEmoji = () => {
-    if (painLevel <= 3) return '😊';
-    if (painLevel <= 6) return '😐';
-    return '😣';
-  };
-
-  const renderStep1 = () => (
-    <motion.div
-      key="step1"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="flex flex-col h-full"
-    >
-      <div className="flex-1">
-        <div className="w-14 h-14 glass-card rounded-2xl flex items-center justify-center mb-6">
-          <Activity className="text-app-primary w-7 h-7" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">
-          Qual seu nível de dor lombar?
-        </h2>
-        <p className="text-app-textMuted mb-8 text-sm">
-          Isso nos ajuda a adaptar os exercícios com segurança.
-        </p>
-
-        <div className="glass-card p-6 rounded-2xl">
-          <div className="text-center mb-6">
-            <span className="text-3xl mr-2">{getPainEmoji()}</span>
-            <span className={`text-5xl font-bold ${getPainColor()}`}>
-              {painLevel}
-            </span>
-          </div>
-          <input
-            type="range"
-            min="1"
-            max="10"
-            value={painLevel}
-            onChange={(e) => setPainLevel(parseInt(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-[10px] text-app-textMuted mt-3 uppercase tracking-wide">
-            <span>Sem dor</span>
-            <span>Dor extrema</span>
-          </div>
-        </div>
-
-        {painLevel >= 7 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-4 bg-app-danger/10 border border-app-danger/20 rounded-xl flex items-start gap-3"
-          >
-            <AlertTriangle className="text-app-danger w-5 h-5 shrink-0 mt-0.5" />
-            <p className="text-sm text-app-danger/90">
-              Com dor alta, focaremos apenas em exercícios de mobilidade e
-              alívio. Consulte um médico se a dor persistir.
-            </p>
-          </motion.div>
-        )}
-      </div>
-    </motion.div>
-  );
-
-  const objectives = [
-    {
-      id: 'alivio',
-      label: 'Alívio de dor',
-      desc: 'Foco em mobilidade e estabilização',
-      icon: Shield,
-      gradient: 'from-green-500/20 to-emerald-500/20',
-    },
-    {
-      id: 'fortalecimento',
-      label: 'Fortalecimento',
-      desc: 'Progressão gradual de carga',
-      icon: Target,
-      gradient: 'from-amber-500/20 to-orange-500/20',
-    },
-    {
-      id: 'performance',
-      label: 'Performance',
-      desc: 'Progressão acelerada e métricas',
-      icon: Zap,
-      gradient: 'from-cyan-500/20 to-teal-500/20',
-    },
-  ];
-
-  const renderStep2 = () => (
-    <motion.div
-      key="step2"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="flex flex-col h-full"
-    >
-      <div className="flex-1">
-        <div className="w-14 h-14 glass-card rounded-2xl flex items-center justify-center mb-6">
-          <Target className="text-app-primary w-7 h-7" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">
-          Qual seu objetivo principal?
-        </h2>
-        <p className="text-app-textMuted mb-8 text-sm">
-          Personalizaremos seu plano com base nisso.
-        </p>
-
-        <div className="space-y-3">
-          {objectives.map((opt) => {
-            const Icon = opt.icon;
-            const isSelected = objective === opt.id;
-            return (
-              <motion.button
-                key={opt.id}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setObjective(opt.id as Objective)}
-                className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${
-                  isSelected
-                    ? 'glass-card border-app-primary/50 glow-amber'
-                    : 'glass-card-light hover:border-app-textMuted/30'
-                }`}
-              >
-                <div
-                  className={`w-11 h-11 rounded-xl bg-gradient-to-br ${opt.gradient} flex items-center justify-center`}
-                >
-                  <Icon className={`w-5 h-5 ${isSelected ? 'text-app-primary' : 'text-app-textMuted'}`} />
-                </div>
-                <div>
-                  <div className="font-semibold text-app-text">{opt.label}</div>
-                  <div className="text-xs text-app-textMuted mt-0.5">{opt.desc}</div>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-    </motion.div>
-  );
-
-  const levels = [
-    {
-      id: 'iniciante',
-      label: 'Iniciante',
-      desc: '+5s por evolução',
-      detail: 'Ideal para quem está começando',
-    },
-    {
-      id: 'moderado',
-      label: 'Moderado',
-      desc: '+10s por evolução',
-      detail: 'Alguma experiência com core',
-    },
-    {
-      id: 'avancado',
-      label: 'Avançado',
-      desc: '+15s por evolução',
-      detail: 'Experiência consistente com prancha',
-    },
-  ];
-
-  const renderStep3 = () => (
-    <motion.div
-      key="step3"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="flex flex-col h-full"
-    >
-      <div className="flex-1">
-        <div className="w-14 h-14 glass-card rounded-2xl flex items-center justify-center mb-6">
-          <Zap className="text-app-primary w-7 h-7" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">
-          Qual sua experiência com prancha?
-        </h2>
-        <p className="text-app-textMuted mb-8 text-sm">
-          Define o ritmo de evolução do seu tempo.
-        </p>
-
-        <div className="space-y-3">
-          {levels.map((opt) => {
-            const isSelected = experience === opt.id;
-            return (
-              <motion.button
-                key={opt.id}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setExperience(opt.id as ExperienceLevel)}
-                className={`w-full text-left p-4 rounded-xl border transition-all ${
-                  isSelected
-                    ? 'glass-card border-app-primary/50 glow-amber'
-                    : 'glass-card-light hover:border-app-textMuted/30'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <div className="font-semibold text-app-text">{opt.label}</div>
-                  <span className="text-xs font-mono text-app-primary bg-app-primary/10 px-2 py-0.5 rounded-md">
-                    {opt.desc}
-                  </span>
-                </div>
-                <div className="text-xs text-app-textMuted mt-1">{opt.detail}</div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-    </motion.div>
-  );
+  const painColor =
+    painLevel <= 3
+      ? 'text-modality-mobility'
+      : painLevel <= 6
+        ? 'text-modality-time'
+        : 'text-modality-danger';
 
   return (
-    <div className="min-h-screen bg-app-bg text-app-text flex flex-col max-w-[430px] mx-auto w-full relative overflow-hidden">
-      {/* Ambient orbs */}
-      <div className="ambient-orb ambient-orb-amber w-72 h-72 -top-24 -right-24" />
-      <div className="ambient-orb ambient-orb-teal w-56 h-56 bottom-24 -left-20" />
+    <div className="min-h-screen bg-canvas text-ink flex justify-center w-full sm:py-4">
+      <div className="w-full max-w-[460px] min-h-screen sm:min-h-[calc(100vh-2rem)] flex flex-col bg-canvas sm:rounded-[28px] sm:border sm:border-border-token sm:shadow-elevated overflow-hidden relative">
+        {/* Progress Steps */}
+        <div className="px-6 pt-10 pb-5 flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                i <= step ? 'bg-modality-time' : 'bg-subtle border border-border-token'
+              }`}
+            />
+          ))}
+        </div>
 
-      {/* Progress bar */}
-      <div className="px-6 pt-12 pb-6 flex gap-2 relative z-10">
-        {[1, 2, 3].map((i) => (
-          <motion.div
-            key={i}
-            className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-              i <= step ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-app-border/50'
-            }`}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: i * 0.1 }}
-          />
-        ))}
-      </div>
+        <div className="flex-1 px-6 pb-28 overflow-y-auto no-scrollbar">
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div
+                key="s1"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                className="space-y-6"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-modality-time-soft border border-modality-time-border flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-modality-time" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-display font-extrabold text-ink">
+                    Qual seu nível de dor lombar hoje?
+                  </h1>
+                  <p className="text-sm text-ink-muted mt-1.5">
+                    O Motor Adaptativo calibra suas metas e bloqueia alto impacto automaticamente se necessário.
+                  </p>
+                </div>
 
-      <div className="flex-1 px-6 pb-24 overflow-y-auto no-scrollbar relative z-10">
-        <AnimatePresence mode="wait">
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-        </AnimatePresence>
-      </div>
+                <div className="surface-card rounded-2xl p-6 space-y-5">
+                  <div className="text-center">
+                    <span className={`text-5xl font-mono font-extrabold tabular-nums ${painColor}`}>
+                      {painLevel}
+                    </span>
+                    <span className="text-sm text-ink-muted ml-1">/ 10</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    value={painLevel}
+                    onChange={(e) => setPainLevel(parseInt(e.target.value, 10))}
+                    className="pain-slider"
+                  />
+                  <div className="flex justify-between text-[11px] font-medium text-ink-muted">
+                    <span>Sem dor</span>
+                    <span>Moderada</span>
+                    <span>Dor intensa</span>
+                  </div>
+                </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-app-bg via-app-bg/95 to-transparent z-20">
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleNext}
-          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
-        >
-          {step === 3 ? 'Começar' : 'Continuar'}
-          <ChevronRight className="w-5 h-5" />
-        </motion.button>
+                {painLevel >= 7 && (
+                  <div className="p-4 rounded-2xl bg-modality-danger-soft border border-modality-danger-border flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-modality-danger shrink-0 mt-0.5" />
+                    <p className="text-xs text-ink-secondary leading-relaxed">
+                      Com dor ≥ 7, exercícios de alto impacto (como Pular Corda) ficarão bloqueados automaticamente, liberando apenas mobilidade segura.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div
+                key="s2"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                className="space-y-6"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-modality-reps-soft border border-modality-reps-border flex items-center justify-center">
+                  <Target className="w-6 h-6 text-modality-reps" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-display font-extrabold text-ink">
+                    Qual seu foco principal?
+                  </h1>
+                  <p className="text-sm text-ink-muted mt-1.5">
+                    Personalizamos suas rotinas híbridas de core, força e condicionamento.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {(
+                    [
+                      {
+                        id: 'alivio',
+                        label: 'Alívio & Mobilidade',
+                        desc: 'Descompressão lombar e estabilização leve',
+                        icon: Shield,
+                      },
+                      {
+                        id: 'fortalecimento',
+                        label: 'Fortalecimento Híbrido',
+                        desc: 'Equilíbrio entre core isométrico e força funcional',
+                        icon: Target,
+                      },
+                      {
+                        id: 'performance',
+                        label: 'Performance & Cardio',
+                        desc: 'Progressão intensa com Pular Corda HIIT e séries avançadas',
+                        icon: Zap,
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const Icon = opt.icon;
+                    const active = objective === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setObjective(opt.id)}
+                        className={`w-full p-4 rounded-2xl surface-card flex items-center gap-3.5 text-left transition-all ${
+                          active ? 'border-modality-reps ring-1 ring-modality-reps' : ''
+                        }`}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            active
+                              ? 'bg-modality-reps text-white'
+                              : 'bg-subtle text-ink-muted'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="font-display font-bold text-sm text-ink">
+                            {opt.label}
+                          </div>
+                          <div className="text-xs text-ink-muted mt-0.5">
+                            {opt.desc}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div
+                key="s3"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                className="space-y-6"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-modality-cardio-soft border border-modality-cardio-border flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-modality-cardio" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-display font-extrabold text-ink">
+                    Qual sua experiência atual?
+                  </h1>
+                  <p className="text-sm text-ink-muted mt-1.5">
+                    Define o ritmo de incremento automático das metas.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {(
+                    [
+                      {
+                        id: 'iniciante',
+                        label: 'Iniciante',
+                        inc: '+5s core / +15s cardio',
+                        desc: 'Ideal para construir consistência com segurança',
+                      },
+                      {
+                        id: 'moderado',
+                        label: 'Moderado',
+                        inc: '+10s core / +30s cardio',
+                        desc: 'Já treina regularmente e busca evolução contínua',
+                      },
+                      {
+                        id: 'avancado',
+                        label: 'Avançado',
+                        inc: '+15s core / +45s cardio',
+                        desc: 'Domínio sólido de isometria, força e HIIT',
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const active = experience === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setExperience(opt.id)}
+                        className={`w-full p-4 rounded-2xl surface-card text-left transition-all ${
+                          active ? 'border-modality-cardio ring-1 ring-modality-cardio' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-display font-bold text-sm text-ink">
+                            {opt.label}
+                          </span>
+                          <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-modality-cardio-soft text-modality-cardio">
+                            {opt.inc}
+                          </span>
+                        </div>
+                        <p className="text-xs text-ink-muted mt-1">{opt.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="p-6 bg-canvas border-t border-border-token">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleNext}
+            className="w-full py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <span>{step === 3 ? 'Começar Treinos' : 'Continuar'}</span>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

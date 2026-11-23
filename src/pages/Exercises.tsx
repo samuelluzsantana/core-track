@@ -1,196 +1,399 @@
-import React, { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Plus, X, Check, Info, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
-  getAppData,
-  addExerciseSession,
-  updateExerciseFeedback,
-} from '../utils/storage';
-import { getFilteredStaticExercises } from '../utils/exerciseApi';
-import { FeedbackModal } from '../components/FeedbackModal';
-import { AnimatedChecklist, ChecklistItem } from '../components/ui/AnimatedChecklist';
-import { ExerciseDef, Feedback, SafetyLevel } from '../types';
-
-function SafetyBadge({ level }: { level: SafetyLevel }) {
-  const config: Record<SafetyLevel, { emoji: string; text: string; cls: string }> = {
-    mobilidade: { emoji: '🟢', text: 'Mobilidade', cls: 'safety-mobilidade' },
-    baixoImpacto: { emoji: '🟡', text: 'Baixo Impacto', cls: 'safety-baixo' },
-    medioImpacto: { emoji: '🔴', text: 'Médio Impacto', cls: 'safety-medio' },
-  };
-  const c = config[level];
-  return (
-    <span className={`safety-badge ${c.cls}`}>
-      {c.emoji} {c.text}
-    </span>
-  );
-}
+  Search,
+  Plus,
+  Lock,
+  ChevronRight,
+  X,
+  Play,
+  ClipboardList,
+  Trash2,
+  ShieldAlert,
+  Info,
+} from 'lucide-react';
+import { useAppData } from '../contexts/AppDataContext';
+import { CatalogExercise } from '../types';
+import { getExerciseSafetyStatus, getExercisePR } from '../utils/ipcAlgorithm';
+import { ExerciseAvatar } from '../components/ExerciseAvatar';
+import { AddExerciseModal } from '../components/AddExerciseModal';
+import { RoutineBuilderModal } from '../components/RoutineBuilderModal';
+import { CATEGORY_LABELS, IMPACT_LABELS, MODALITY_LABELS } from '../data/seedCatalog';
 
 export function Exercises() {
-  const [painLevel, setPainLevel] = useState(1);
-  const [exercises, setExercises] = useState<ExerciseDef[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseDef | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
-  const [sets, setSets] = useState(3);
-  const [reps, setReps] = useState(10);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [lastSessionId, setLastSessionId] = useState<string | null>(null);
-  const [instructionChecklist, setInstructionChecklist] = useState<ChecklistItem[]>([]);
+  const navigate = useNavigate();
+  const {
+    catalog,
+    routines,
+    logs,
+    ipc,
+    deleteCustomExercise,
+    deleteRoutine,
+  } = useAppData();
 
-  useEffect(() => {
-    const data = getAppData();
-    const pl = data.profile?.painLevel || 1;
-    setPainLevel(pl);
-    setExercises(getFilteredStaticExercises(pl));
-  }, []);
+  const [viewMode, setViewMode] = useState<'catalog' | 'routines'>('catalog');
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedEx, setSelectedEx] = useState<CatalogExercise | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addTab, setAddTab] = useState<'explore' | 'custom'>('explore');
+  const [showRoutineBuilder, setShowRoutineBuilder] = useState(false);
 
-  const isHighPain = painLevel >= 7;
-
-  const handleSelectExercise = (ex: ExerciseDef) => {
-    setSelectedExercise(ex);
-    setShowDetail(false);
-    // Build instruction checklist from exercise data
-    if (ex.instructions && ex.instructions.length > 0) {
-      setInstructionChecklist(
-        ex.instructions.map((inst, i) => ({
-          id: `inst-${i}`,
-          label: inst,
-          checked: false,
-        }))
-      );
-    } else {
-      setInstructionChecklist([]);
-    }
-  };
-
-  const handleInstructionToggle = (id: string, checked: boolean) => {
-    setInstructionChecklist((items) =>
-      items.map((item) => (item.id === id ? { ...item, checked } : item))
-    );
-  };
-
-  const handleSave = () => {
-    if (!selectedExercise) return;
-    const id = addExerciseSession({
-      date: new Date().toISOString(),
-      exerciseId: selectedExercise.id,
-      exerciseName: selectedExercise.name,
-      targetMuscles: selectedExercise.targetMuscles,
-      sets,
-      reps,
+  const filteredCatalog = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return catalog.filter((ex) => {
+      if (selectedCategory !== 'all' && ex.category !== selectedCategory) {
+        return false;
+      }
+      if (
+        q &&
+        !ex.name.toLowerCase().includes(q) &&
+        !ex.primaryMuscles.some((m) => m.toLowerCase().includes(q)) &&
+        !(ex.equipment || '').toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      return true;
     });
-    setLastSessionId(id);
-    setSelectedExercise(null);
-    setTimeout(() => setShowFeedback(true), 300);
-  };
+  }, [catalog, search, selectedCategory]);
 
-  const handleFeedback = (feedback: Feedback) => {
-    if (lastSessionId) {
-      updateExerciseFeedback(lastSessionId, feedback);
-    }
+  const openAddModal = (tab: 'explore' | 'custom') => {
+    setAddTab(tab);
+    setShowAddModal(true);
   };
 
   return (
-    <div className="p-6 pt-10 pb-24">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-2xl font-bold mb-1">Exercícios Core</h1>
-        <p className="text-app-textMuted text-sm mb-6">
-          {isHighPain
-            ? '⚠️ Mostrando apenas exercícios seguros para seu nível de dor.'
-            : 'Selecione um exercício para registrar.'}
-        </p>
-      </motion.div>
-
-      <div className="space-y-3">
-        {exercises.map((ex, index) => {
-          const isLocked = isHighPain && ex.safetyLevel === 'medioImpacto';
-          return (
-            <motion.button
-              key={ex.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              disabled={isLocked}
-              onClick={() => handleSelectExercise(ex)}
-              className={`w-full text-left p-4 rounded-2xl transition-all flex items-center gap-4 ${
-                isLocked
-                  ? 'glass-card-light opacity-50 cursor-not-allowed'
-                  : 'glass-card hover:border-app-secondary/50'
-              }`}
-            >
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                  isLocked
-                    ? 'bg-app-bg/50 text-app-textMuted'
-                    : 'bg-app-secondary/10 text-app-secondary'
-                }`}
-              >
-                {isLocked ? (
-                  <Lock className="w-5 h-5" />
-                ) : (
-                  <Plus className="w-5 h-5" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start gap-2">
-                  <h3 className="font-semibold text-app-text text-sm">{ex.name}</h3>
-                  <SafetyBadge level={ex.safetyLevel} />
-                </div>
-                <p className="text-xs text-app-textMuted mt-1">{ex.focus}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-app-textMuted shrink-0" />
-            </motion.button>
-          );
-        })}
+    <div className="px-5 pt-7 pb-8 space-y-5">
+      {/* Top Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight">
+            Biblioteca & Rotinas
+          </h1>
+          <p className="text-xs text-ink-muted mt-0.5">
+            Core, força, mobilidade e cardio/HIIT unificados
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => openAddModal('explore')}
+          className="px-3.5 py-2 rounded-xl bg-modality-cardio text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar
+        </button>
       </div>
 
-      {/* Exercise Detail & Logging Modal */}
+      {/* Segmented Switcher: Catálogo vs Rotinas */}
+      <div className="grid grid-cols-2 p-1 rounded-xl bg-subtle border border-border-token">
+        <button
+          type="button"
+          onClick={() => setViewMode('catalog')}
+          className={`py-2 rounded-lg text-xs font-bold transition-all ${
+            viewMode === 'catalog'
+              ? 'bg-surface text-ink shadow-sm'
+              : 'text-ink-muted hover:text-ink'
+          }`}
+        >
+          Exercícios ({catalog.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('routines')}
+          className={`py-2 rounded-lg text-xs font-bold transition-all ${
+            viewMode === 'routines'
+              ? 'bg-surface text-ink shadow-sm'
+              : 'text-ink-muted hover:text-ink'
+          }`}
+        >
+          Rotinas ({routines.length})
+        </button>
+      </div>
+
+      {/* Adaptive Safety Banner */}
+      {ipc.highImpactBlocked && (
+        <div className="p-3.5 rounded-2xl bg-modality-danger-soft border border-modality-danger-border flex items-start gap-2.5">
+          <ShieldAlert className="w-4 h-4 text-modality-danger shrink-0 mt-0.5" />
+          <p className="text-xs text-ink-secondary leading-relaxed">
+            <strong className="text-modality-danger">Alto impacto bloqueado:</strong>{' '}
+            {ipc.blockReason}
+          </p>
+        </div>
+      )}
+
+      {viewMode === 'catalog' ? (
+        <>
+          {/* Search + Category Filter Pills (Ref Image 1) */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-ink-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar exercício, músculo ou equipamento..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink placeholder:text-ink-muted outline-none focus:border-modality-cardio"
+              />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {[
+                { id: 'all', label: 'Todos' },
+                { id: 'core', label: 'Core & Lombar' },
+                { id: 'cardio', label: 'Cardio & Corda' },
+                { id: 'mobility', label: 'Mobilidade' },
+                { id: 'strength', label: 'Força' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
+                    selectedCategory === cat.id
+                      ? 'bg-modality-cardio text-white border-modality-cardio'
+                      : 'bg-surface text-ink-secondary border-border-token hover:bg-subtle'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Exercise List (Ref Image 1 clean circular thumbnail list) */}
+          <div className="surface-card rounded-2xl divide-y divide-border-token overflow-hidden">
+            {filteredCatalog.map((ex) => {
+              const safety = getExerciseSafetyStatus(ex, ipc, catalog);
+              return (
+                <button
+                  key={ex.id}
+                  type="button"
+                  onClick={() => setSelectedEx(ex)}
+                  className={`w-full p-3.5 flex items-center gap-3.5 text-left transition-colors ${
+                    safety.locked
+                      ? 'opacity-65 bg-subtle/40 hover:bg-subtle/70'
+                      : 'hover:bg-surface-hover'
+                  }`}
+                >
+                  <ExerciseAvatar
+                    name={ex.name}
+                    imageUrl={ex.imageUrls[0]}
+                    measurementType={ex.measurementType}
+                    themeColor={ex.themeColor}
+                    iconName={ex.iconName}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-semibold text-sm text-ink truncate">
+                        {ex.name}
+                      </h3>
+                      {ex.isCustom && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-modality-cardio-soft text-modality-cardio">
+                          Custom
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-[11px] text-ink-muted capitalize">
+                        {ex.primaryMuscles[0] || CATEGORY_LABELS[ex.category]}
+                      </span>
+                      <span className={`safety-badge safety-${ex.impactLevel}`}>
+                        {safety.locked && <Lock className="w-2.5 h-2.5" />}
+                        {IMPACT_LABELS[ex.impactLevel]}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-ink-muted shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Secondary actions: Explore external APIs or Create custom */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => openAddModal('explore')}
+              className="py-3 px-3 rounded-xl surface-card text-xs font-semibold text-ink-secondary hover:text-ink flex items-center justify-center gap-1.5"
+            >
+              <Search className="w-3.5 h-3.5 text-modality-cardio" />
+              Explorar APIs
+            </button>
+            <button
+              type="button"
+              onClick={() => openAddModal('custom')}
+              className="py-3 px-3 rounded-xl surface-card text-xs font-semibold text-ink-secondary hover:text-ink flex items-center justify-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5 text-modality-time" />
+              Criar Customizado
+            </button>
+          </div>
+        </>
+      ) : (
+        /* Routines View (Ref Image 2) */
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShowRoutineBuilder(true)}
+              className="py-3 px-3 rounded-xl surface-card text-xs font-bold text-ink flex items-center justify-center gap-2 hover:border-modality-cardio-border"
+            >
+              <ClipboardList className="w-4 h-4 text-modality-cardio" />
+              Nova Rotina
+            </button>
+            <button
+              type="button"
+              onClick={() => openAddModal('explore')}
+              className="py-3 px-3 rounded-xl surface-card text-xs font-bold text-ink flex items-center justify-center gap-2"
+            >
+              <Search className="w-4 h-4 text-modality-reps" />
+              Importar Exercício
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {routines.map((r) => {
+              const hasBlocked = r.items.some((it) =>
+                getExerciseSafetyStatus(
+                  { impactLevel: it.impactLevel, category: it.category },
+                  ipc,
+                  catalog
+                ).locked
+              );
+              return (
+                <div key={r.id} className="surface-card rounded-2xl p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-display font-bold text-base text-ink">
+                        {r.name}
+                      </h3>
+                      {r.description && (
+                        <p className="text-xs text-ink-muted mt-0.5">
+                          {r.description}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => deleteRoutine(r.id)}
+                      className="p-1.5 rounded-lg text-ink-muted hover:text-modality-danger"
+                      title="Excluir rotina"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-ink-secondary leading-relaxed">
+                    {r.items.map((it) => it.exerciseName).join(' • ')}
+                  </p>
+
+                  {hasBlocked && (
+                    <div className="text-[11px] font-medium text-modality-danger flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5" />
+                      Contém exercício de alto impacto bloqueado hoje — substituições seguras disponíveis ao iniciar.
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/train?routineId=${r.id}`)}
+                    className="w-full py-2.5 rounded-xl bg-modality-cardio text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Iniciar Rotina ({r.items.length} exercícios)
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Exercise Detail Bottom Sheet */}
       <AnimatePresence>
-        {selectedExercise && (
+        {selectedEx && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
-              onClick={() => setSelectedExercise(null)}
+              className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-40"
+              onClick={() => setSelectedEx(null)}
             />
             <motion.div
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-app-card rounded-t-3xl p-6 pb-24 z-50 border-t border-app-border max-h-[85vh] overflow-y-auto no-scrollbar"
+              className="fixed bottom-0 left-0 right-0 max-w-[460px] mx-auto bg-surface rounded-t-3xl p-6 pb-8 z-50 border-t border-border-token shadow-elevated max-h-[85vh] overflow-y-auto no-scrollbar"
             >
-              {/* Header */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-xl font-bold text-app-text">
-                      {selectedExercise.name}
+              <div className="flex justify-between items-start gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <ExerciseAvatar
+                    name={selectedEx.name}
+                    imageUrl={selectedEx.imageUrls[0]}
+                    measurementType={selectedEx.measurementType}
+                    themeColor={selectedEx.themeColor}
+                    iconName={selectedEx.iconName}
+                    size="lg"
+                  />
+                  <div>
+                    <h3 className="text-lg font-display font-bold text-ink">
+                      {selectedEx.name}
                     </h3>
-                    <SafetyBadge level={selectedExercise.safetyLevel} />
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[11px] font-medium text-ink-muted">
+                        {MODALITY_LABELS[selectedEx.measurementType]}
+                      </span>
+                      <span className={`safety-badge safety-${selectedEx.impactLevel}`}>
+                        {IMPACT_LABELS[selectedEx.impactLevel]}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-app-textMuted">
-                    {selectedExercise.description}
-                  </p>
                 </div>
                 <button
-                  onClick={() => setSelectedExercise(null)}
-                  className="p-2 bg-app-bg rounded-full text-app-textMuted hover:text-app-text shrink-0 ml-3"
+                  type="button"
+                  onClick={() => setSelectedEx(null)}
+                  className="p-2 bg-subtle rounded-full text-ink-muted hover:text-ink"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Target muscles */}
-              {selectedExercise.targetMuscles && selectedExercise.targetMuscles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {selectedExercise.targetMuscles.map((m) => (
+              {/* Free Exercise DB Images */}
+              {selectedEx.imageUrls.length > 0 && (
+                <div className="grid grid-cols-2 gap-2.5 mb-4">
+                  {selectedEx.imageUrls.slice(0, 2).map((img, i) => (
+                    <div
+                      key={i}
+                      className="aspect-[4/3] rounded-xl overflow-hidden border border-border-token bg-white"
+                    >
+                      <img
+                        src={img}
+                        alt={`${selectedEx.name} demonstração ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Muscles */}
+              {selectedEx.primaryMuscles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {selectedEx.primaryMuscles.map((m) => (
                     <span
                       key={m}
-                      className="text-[10px] px-2 py-1 rounded-full bg-app-secondary/10 text-app-secondary border border-app-secondary/20"
+                      className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-modality-reps-soft text-modality-reps border border-modality-reps-border capitalize"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                  {selectedEx.secondaryMuscles.map((m) => (
+                    <span
+                      key={m}
+                      className="text-[11px] px-2.5 py-0.5 rounded-full bg-subtle text-ink-secondary border border-border-token capitalize"
                     >
                       {m}
                     </span>
@@ -198,99 +401,87 @@ export function Exercises() {
                 </div>
               )}
 
-              {/* Instructions Checklist */}
-              {instructionChecklist.length > 0 && (
-                <div className="mb-5">
-                  <button
-                    onClick={() => setShowDetail(!showDetail)}
-                    className="flex items-center gap-2 mb-3"
-                  >
-                    <Info className="w-4 h-4 text-app-primary" />
-                    <span className="text-[11px] uppercase tracking-wider text-app-textMuted font-semibold">
-                      Passo a passo
-                    </span>
-                  </button>
-                  <AnimatedChecklist
-                    items={instructionChecklist}
-                    onToggle={handleInstructionToggle}
-                  />
-                </div>
-              )}
-
-              {/* Tips */}
-              {selectedExercise.tips && selectedExercise.tips.length > 0 && (
-                <div className="mb-5 p-3 rounded-xl bg-app-primary/5 border border-app-primary/10">
-                  <span className="text-[10px] uppercase tracking-wider text-app-primary font-semibold">
-                    💡 Dicas
-                  </span>
-                  <ul className="mt-2 space-y-1">
-                    {selectedExercise.tips.map((tip, i) => (
-                      <li key={i} className="text-xs text-app-textMuted flex items-start gap-2">
-                        <span className="text-app-primary mt-0.5">•</span>
-                        {tip}
-                      </li>
+              {/* Instructions */}
+              {selectedEx.instructions.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">
+                    <Info className="w-3.5 h-3.5 text-modality-time" />
+                    Passo a Passo
+                  </div>
+                  <ol className="space-y-1.5 text-xs text-ink-secondary list-decimal pl-4 leading-relaxed">
+                    {selectedEx.instructions.map((inst, idx) => (
+                      <li key={idx}>{inst}</li>
                     ))}
-                  </ul>
+                  </ol>
                 </div>
               )}
 
-              {/* Sets & Reps */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="glass-card p-4 rounded-xl text-center">
-                  <div className="text-xs text-app-textMuted mb-2">Séries</div>
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setSets(Math.max(1, sets - 1))}
-                      className="w-9 h-9 rounded-full bg-app-bg flex items-center justify-center text-app-textMuted hover:text-app-text transition-colors text-lg"
-                    >
-                      −
-                    </button>
-                    <span className="text-2xl font-bold">{sets}</span>
-                    <button
-                      onClick={() => setSets(sets + 1)}
-                      className="w-9 h-9 rounded-full bg-app-bg flex items-center justify-center text-app-textMuted hover:text-app-text transition-colors text-lg"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div className="glass-card p-4 rounded-xl text-center">
-                  <div className="text-xs text-app-textMuted mb-2">Repetições</div>
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setReps(Math.max(1, reps - 1))}
-                      className="w-9 h-9 rounded-full bg-app-bg flex items-center justify-center text-app-textMuted hover:text-app-text transition-colors text-lg"
-                    >
-                      −
-                    </button>
-                    <span className="text-2xl font-bold">{reps}</span>
-                    <button
-                      onClick={() => setReps(reps + 1)}
-                      className="w-9 h-9 rounded-full bg-app-bg flex items-center justify-center text-app-textMuted hover:text-app-text transition-colors text-lg"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* Safety Warning or Start Action */}
+              {(() => {
+                const safety = getExerciseSafetyStatus(selectedEx, ipc, catalog);
+                const pr = getExercisePR(logs, selectedEx.externalId || selectedEx.id);
+                return (
+                  <div className="space-y-3 pt-2 border-t border-border-token">
+                    {pr.bestSeconds > 0 && (
+                      <div className="text-xs text-ink-muted">
+                        Seu recorde pessoal:{' '}
+                        <strong className="text-modality-time tabular-nums">
+                          {pr.bestSeconds}s
+                        </strong>
+                      </div>
+                    )}
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleSave}
-                className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg"
-              >
-                <Check className="w-5 h-5" />
-                Salvar Treino
-              </motion.button>
+                    {safety.locked ? (
+                      <div className="p-3 rounded-xl bg-modality-danger-soft border border-modality-danger-border text-xs text-modality-danger">
+                        <div className="font-bold flex items-center gap-1.5 mb-1">
+                          <Lock className="w-3.5 h-3.5" /> Bloqueado pelo Motor Adaptativo
+                        </div>
+                        <p className="text-ink-secondary">{safety.reason}</p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = selectedEx.id;
+                          setSelectedEx(null);
+                          navigate(`/train?exerciseId=${id}`);
+                        }}
+                        className="w-full py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        Treinar Agora
+                      </button>
+                    )}
+
+                    {selectedEx.isCustom && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await deleteCustomExercise(selectedEx.id);
+                          setSelectedEx(null);
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-subtle text-modality-danger text-xs font-semibold flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remover exercício customizado
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      <FeedbackModal
-        isOpen={showFeedback}
-        onClose={() => setShowFeedback(false)}
-        onSubmit={handleFeedback}
+      <AddExerciseModal
+        isOpen={showAddModal}
+        initialTab={addTab}
+        onClose={() => setShowAddModal(false)}
+      />
+
+      <RoutineBuilderModal
+        isOpen={showRoutineBuilder}
+        onClose={() => setShowRoutineBuilder(false)}
       />
     </div>
   );

@@ -1,35 +1,31 @@
-/**
- * Mock Storage Service
- * 
- * Implements IStorageService using localStorage as the backing store.
- * Seeds itself with fake data on first load.
- */
-
 import { IStorageService } from '../../config/types';
 import {
-  UserProfile,
-  PlankSession,
-  ExerciseSession,
+  AppData,
+  CatalogExercise,
+  ExperienceLevel,
   Feedback,
   LombarLevelData,
-  AppData,
+  Objective,
+  ThemePreference,
+  UserProfile,
+  WorkoutLog,
+  WorkoutRoutine,
 } from '../../types';
+import { DEFAULT_ROUTINES, SEED_CATALOG } from '../../data/seedCatalog';
 import { getSeedData, SeedScenario } from './seeds';
 import { mockDelay, maybeThrow, mockId, mockLog } from './mockUtils';
 
-const MOCK_STORAGE_KEY = 'coretracker_mock_data';
+const MOCK_STORAGE_KEY = 'coretracker_hybrid_mock_v2';
 const SEED_SCENARIO_KEY = 'coretracker_seed_scenario';
 
 export class MockStorageService implements IStorageService {
   private data: AppData;
 
   constructor() {
-    // Try to restore from localStorage
     const stored = localStorage.getItem(MOCK_STORAGE_KEY);
     if (stored) {
       try {
         this.data = JSON.parse(stored);
-        mockLog('Storage', 'Restored data from localStorage');
       } catch {
         this.data = this.loadSeedData();
       }
@@ -39,10 +35,10 @@ export class MockStorageService implements IStorageService {
   }
 
   private loadSeedData(): AppData {
-    const scenario = (localStorage.getItem(SEED_SCENARIO_KEY) || 'intermediate') as SeedScenario;
+    const scenario = (localStorage.getItem(SEED_SCENARIO_KEY) ||
+      'intermediate') as SeedScenario;
     const data = getSeedData(scenario);
     this.persist(data);
-    mockLog('Storage', `Loaded seed data (scenario: ${scenario})`);
     return data;
   }
 
@@ -51,284 +47,232 @@ export class MockStorageService implements IStorageService {
     try {
       localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {
-      console.warn('[MockStorage] Failed to persist:', e);
+      console.warn('[MockStorage] persist failed:', e);
     }
   }
 
-  /** Switch seed scenario and reload data */
   switchScenario(scenario: SeedScenario): void {
     localStorage.setItem(SEED_SCENARIO_KEY, scenario);
     localStorage.removeItem(MOCK_STORAGE_KEY);
     this.data = this.loadSeedData();
-    mockLog('Storage', `Switched to scenario: ${scenario}`);
   }
 
-  // ─── Profile ────────────────────────────────────────────────
-
   async getProfile(): Promise<UserProfile | null> {
-    await mockDelay();
-    maybeThrow('getProfile');
-    mockLog('Storage', 'getProfile');
+    await mockDelay(120);
     return this.data.profile;
   }
 
-  async saveProfile(profile: UserProfile): Promise<void> {
-    await mockDelay();
+  async saveProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
+    await mockDelay(120);
     maybeThrow('saveProfile');
-    mockLog('Storage', 'saveProfile', profile);
-    this.data.profile = profile;
+    const base: UserProfile = this.data.profile ?? {
+      painLevel: 1,
+      objective: 'fortalecimento',
+      experienceLevel: 'iniciante',
+      themePreference: 'light',
+      onboardingCompleted: false,
+      weeklyGoalMinutes: 90,
+      currentStreak: 0,
+      lastWorkoutDate: null,
+      lombarLevel: {
+        currentLevel: 0,
+        weeksAtCurrentLevel: 0,
+        levelStartDate: new Date().toISOString(),
+      },
+    };
+    this.data.profile = { ...base, ...profile };
+    this.persist();
+    return this.data.profile;
+  }
+
+  async updatePainLevel(painLevel: number): Promise<void> {
+    await this.saveProfile({ painLevel });
+  }
+
+  async updateObjective(objective: Objective): Promise<void> {
+    await this.saveProfile({ objective });
+  }
+
+  async updateExperienceLevel(level: ExperienceLevel): Promise<void> {
+    await this.saveProfile({ experienceLevel: level });
+  }
+
+  async updateThemePreference(theme: ThemePreference): Promise<void> {
+    if (this.data.profile) {
+      this.data.profile.themePreference = theme;
+      this.persist();
+    }
+  }
+
+  async getCatalogExercises(): Promise<CatalogExercise[]> {
+    await mockDelay(100);
+    return this.data.catalog.length > 0 ? [...this.data.catalog] : [...SEED_CATALOG];
+  }
+
+  async saveCatalogExercise(
+    exercise: Omit<CatalogExercise, 'id'> & { id?: string }
+  ): Promise<CatalogExercise> {
+    await mockDelay(120);
+    const created: CatalogExercise = {
+      ...exercise,
+      id: exercise.id || mockId(),
+    };
+    this.data.catalog = [created, ...this.data.catalog];
+    this.persist();
+    return created;
+  }
+
+  async deleteCustomExercise(id: string): Promise<void> {
+    await mockDelay(100);
+    this.data.catalog = this.data.catalog.filter((c) => c.id !== id);
     this.persist();
   }
 
-  // ─── Plank Sessions ─────────────────────────────────────────
+  async getRoutines(): Promise<WorkoutRoutine[]> {
+    await mockDelay(100);
+    return this.data.routines.length > 0
+      ? [...this.data.routines]
+      : [...DEFAULT_ROUTINES];
+  }
 
-  async getPlankSessions(): Promise<PlankSession[]> {
-    await mockDelay();
-    maybeThrow('getPlankSessions');
-    mockLog('Storage', 'getPlankSessions', `count: ${this.data.plankSessions.length}`);
-    return [...this.data.plankSessions].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  async saveRoutine(
+    routine: Omit<WorkoutRoutine, 'id'> & { id?: string }
+  ): Promise<WorkoutRoutine> {
+    await mockDelay(120);
+    if (routine.id) {
+      const idx = this.data.routines.findIndex((r) => r.id === routine.id);
+      if (idx >= 0) {
+        const updated = { ...this.data.routines[idx], ...routine, id: routine.id };
+        this.data.routines[idx] = updated;
+        this.persist();
+        return updated;
+      }
+    }
+    const created: WorkoutRoutine = {
+      ...routine,
+      id: routine.id || mockId(),
+      createdAt: new Date().toISOString(),
+    };
+    this.data.routines = [created, ...this.data.routines];
+    this.persist();
+    return created;
+  }
+
+  async deleteRoutine(id: string): Promise<void> {
+    await mockDelay(100);
+    this.data.routines = this.data.routines.filter((r) => r.id !== id);
+    this.persist();
+  }
+
+  async getWorkoutLogs(): Promise<WorkoutLog[]> {
+    await mockDelay(100);
+    return [...this.data.logs].sort(
+      (a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime()
     );
   }
 
-  async addPlankSession(session: Omit<PlankSession, 'id'>): Promise<string> {
-    await mockDelay();
-    maybeThrow('addPlankSession');
-    const id = mockId();
-    const newSession = { ...session, id };
-    this.data.plankSessions.push(newSession);
-    this.updateStreak(session.date);
+  async addWorkoutLog(log: Omit<WorkoutLog, 'id'>): Promise<WorkoutLog> {
+    await mockDelay(150);
+    const created: WorkoutLog = { ...log, id: mockId() };
+    this.data.logs = [created, ...this.data.logs];
+    this.updateStreakLocal(created.performedAt);
     this.persist();
-    mockLog('Storage', 'addPlankSession', id);
-    return id;
+    mockLog('MockStorage', 'addWorkoutLog', created.id);
+    return created;
   }
 
-  async updatePlankFeedback(id: string, feedback: Feedback): Promise<void> {
-    await mockDelay();
-    maybeThrow('updatePlankFeedback');
-    const session = this.data.plankSessions.find((s) => s.id === id);
-    if (session) {
-      session.feedback = feedback;
-      this.persist();
+  async updateWorkoutFeedback(
+    id: string,
+    feedback: Feedback,
+    painReported?: number
+  ): Promise<void> {
+    await mockDelay(100);
+    const found = this.data.logs.find((l) => l.id === id);
+    if (found) {
+      found.feedback = feedback;
+      if (painReported !== undefined) found.painReported = painReported;
     }
-    mockLog('Storage', 'updatePlankFeedback', id, feedback);
-  }
-
-  // ─── Exercise Sessions ──────────────────────────────────────
-
-  async getExerciseSessions(): Promise<ExerciseSession[]> {
-    await mockDelay();
-    maybeThrow('getExerciseSessions');
-    mockLog('Storage', 'getExerciseSessions', `count: ${this.data.exerciseSessions.length}`);
-    return [...this.data.exerciseSessions].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }
-
-  async addExerciseSession(session: Omit<ExerciseSession, 'id'>): Promise<string> {
-    await mockDelay();
-    maybeThrow('addExerciseSession');
-    const id = mockId();
-    const newSession = { ...session, id };
-    this.data.exerciseSessions.push(newSession);
-    this.updateStreak(session.date);
+    if (feedback === 'dorAguda' && this.data.profile) {
+      this.data.profile.painLevel = Math.max(this.data.profile.painLevel, 7);
+    }
     this.persist();
-    mockLog('Storage', 'addExerciseSession', id);
-    return id;
   }
 
-  async updateExerciseFeedback(id: string, feedback: Feedback): Promise<void> {
-    await mockDelay();
-    maybeThrow('updateExerciseFeedback');
-    const session = this.data.exerciseSessions.find((s) => s.id === id);
-    if (session) {
-      session.feedback = feedback;
-      this.persist();
-    }
-    mockLog('Storage', 'updateExerciseFeedback', id, feedback);
+  async clearWorkoutHistory(): Promise<void> {
+    await mockDelay(120);
+    this.data.logs = [];
+    this.persist();
   }
 
-  // ─── Streak ─────────────────────────────────────────────────
-
-  private updateStreak(dateStr: string): void {
+  private updateStreakLocal(dateStr: string): void {
+    if (!this.data.profile) return;
     const today = new Date(dateStr);
     today.setHours(0, 0, 0, 0);
-
-    if (!this.data.lastWorkoutDate) {
-      this.data.currentStreak = 1;
-      this.data.lastWorkoutDate = today.toISOString();
-      return;
+    const lastStr = this.data.profile.lastWorkoutDate;
+    if (!lastStr) {
+      this.data.profile.currentStreak = 1;
+    } else {
+      const last = new Date(lastStr);
+      last.setHours(0, 0, 0, 0);
+      const diff = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+      if (diff === 1) this.data.profile.currentStreak += 1;
+      else if (diff > 1) this.data.profile.currentStreak = 1;
+      else if (diff === 0 && this.data.profile.currentStreak === 0)
+        this.data.profile.currentStreak = 1;
     }
-
-    const lastWorkout = new Date(this.data.lastWorkoutDate);
-    lastWorkout.setHours(0, 0, 0, 0);
-    const diffDays = Math.round(
-      (today.getTime() - lastWorkout.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffDays === 1) {
-      this.data.currentStreak += 1;
-    } else if (diffDays > 1) {
-      this.data.currentStreak = 1;
-    }
-    this.data.lastWorkoutDate = today.toISOString();
+    this.data.profile.lastWorkoutDate = today.toISOString();
   }
 
   async getStreak(): Promise<{ currentStreak: number; lastWorkoutDate: string | null }> {
-    await mockDelay(100);
     return {
-      currentStreak: this.data.currentStreak,
-      lastWorkoutDate: this.data.lastWorkoutDate,
+      currentStreak: this.data.profile?.currentStreak ?? 0,
+      lastWorkoutDate: this.data.profile?.lastWorkoutDate ?? null,
     };
   }
 
   async resetStreak(): Promise<void> {
-    await mockDelay();
-    maybeThrow('resetStreak');
-    this.data.currentStreak = 0;
-    this.data.lastWorkoutDate = null;
-    this.persist();
-    mockLog('Storage', 'resetStreak');
+    if (this.data.profile) {
+      this.data.profile.currentStreak = 0;
+      this.data.profile.lastWorkoutDate = null;
+      this.persist();
+    }
   }
 
-  // ─── Lombar Level ───────────────────────────────────────────
-
   async getLombarLevel(): Promise<LombarLevelData> {
-    await mockDelay(100);
-    return this.data.lombarLevel ?? {
-      currentLevel: 0,
-      weeksAtCurrentLevel: 0,
-      levelStartDate: new Date().toISOString(),
-    };
+    return (
+      this.data.profile?.lombarLevel ?? {
+        currentLevel: 0,
+        weeksAtCurrentLevel: 0,
+        levelStartDate: new Date().toISOString(),
+      }
+    );
   }
 
   async advanceLombarLevel(): Promise<void> {
-    await mockDelay();
-    maybeThrow('advanceLombarLevel');
-    const current = this.data.lombarLevel ?? {
-      currentLevel: 0,
-      weeksAtCurrentLevel: 0,
-      levelStartDate: new Date().toISOString(),
-    };
-    current.currentLevel = Math.min(current.currentLevel + 1, 5);
-    current.weeksAtCurrentLevel = 0;
-    current.levelStartDate = new Date().toISOString();
-    this.data.lombarLevel = current;
+    if (!this.data.profile) return;
+    this.data.profile.lombarLevel.currentLevel = Math.min(
+      this.data.profile.lombarLevel.currentLevel + 1,
+      5
+    );
+    this.data.profile.lombarLevel.weeksAtCurrentLevel = 0;
+    this.data.profile.lombarLevel.levelStartDate = new Date().toISOString();
     this.persist();
-    mockLog('Storage', 'advanceLombarLevel', `→ level ${current.currentLevel}`);
   }
 
   async regressLombarLevel(): Promise<void> {
-    await mockDelay();
-    maybeThrow('regressLombarLevel');
-    const current = this.data.lombarLevel ?? {
-      currentLevel: 0,
-      weeksAtCurrentLevel: 0,
-      levelStartDate: new Date().toISOString(),
-    };
-    current.currentLevel = Math.max(current.currentLevel - 1, 0);
-    current.weeksAtCurrentLevel = 0;
-    current.levelStartDate = new Date().toISOString();
-    this.data.lombarLevel = current;
+    if (!this.data.profile) return;
+    this.data.profile.lombarLevel.currentLevel = Math.max(
+      this.data.profile.lombarLevel.currentLevel - 1,
+      0
+    );
+    this.data.profile.lombarLevel.weeksAtCurrentLevel = 0;
+    this.data.profile.lombarLevel.levelStartDate = new Date().toISOString();
     this.persist();
-    mockLog('Storage', 'regressLombarLevel', `→ level ${current.currentLevel}`);
-  }
-
-  // ─── Aggregations ───────────────────────────────────────────
-
-  async getPersonalRecord(): Promise<number> {
-    await mockDelay(100);
-    if (this.data.plankSessions.length === 0) return 0;
-    return Math.max(...this.data.plankSessions.map((s) => s.durationSeconds));
-  }
-
-  async getWeeklyVolume(): Promise<{ plankSeconds: number; exerciseReps: number }> {
-    await mockDelay(100);
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-    let plankSeconds = 0;
-    let exerciseReps = 0;
-
-    this.data.plankSessions.forEach((s) => {
-      if (new Date(s.date) >= oneWeekAgo) plankSeconds += s.durationSeconds;
-    });
-    this.data.exerciseSessions.forEach((s) => {
-      if (new Date(s.date) >= oneWeekAgo) exerciseReps += s.sets * s.reps;
-    });
-
-    return { plankSeconds, exerciseReps };
-  }
-
-  async getMonthlyVolume(): Promise<{ plankSeconds: number; exerciseReps: number }> {
-    await mockDelay(100);
-    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-    let plankSeconds = 0;
-    let exerciseReps = 0;
-
-    this.data.plankSessions.forEach((s) => {
-      if (new Date(s.date) >= oneMonthAgo) plankSeconds += s.durationSeconds;
-    });
-    this.data.exerciseSessions.forEach((s) => {
-      if (new Date(s.date) >= oneMonthAgo) exerciseReps += s.sets * s.reps;
-    });
-
-    return { plankSeconds, exerciseReps };
-  }
-
-  async getTotalSessions(): Promise<number> {
-    await mockDelay(100);
-    return this.data.plankSessions.length + this.data.exerciseSessions.length;
-  }
-
-  // ─── Settings / Reset ───────────────────────────────────────
-
-  async updatePainLevel(painLevel: number): Promise<void> {
-    await mockDelay();
-    if (this.data.profile) {
-      this.data.profile.painLevel = painLevel;
-      this.persist();
-    }
-    mockLog('Storage', 'updatePainLevel', painLevel);
-  }
-
-  async updateObjective(objective: 'alivio' | 'fortalecimento' | 'performance'): Promise<void> {
-    await mockDelay();
-    if (this.data.profile) {
-      this.data.profile.objective = objective;
-      this.persist();
-    }
-    mockLog('Storage', 'updateObjective', objective);
-  }
-
-  async updateExperienceLevel(level: 'iniciante' | 'moderado' | 'avancado'): Promise<void> {
-    await mockDelay();
-    if (this.data.profile) {
-      this.data.profile.experienceLevel = level;
-      this.persist();
-    }
-    mockLog('Storage', 'updateExperienceLevel', level);
-  }
-
-  async clearPlankHistory(): Promise<void> {
-    await mockDelay();
-    this.data.plankSessions = [];
-    this.persist();
-    mockLog('Storage', 'clearPlankHistory');
-  }
-
-  async clearExerciseHistory(): Promise<void> {
-    await mockDelay();
-    this.data.exerciseSessions = [];
-    this.persist();
-    mockLog('Storage', 'clearExerciseHistory');
   }
 
   async resetAllData(): Promise<void> {
-    await mockDelay();
     localStorage.removeItem(MOCK_STORAGE_KEY);
     this.data = getSeedData('empty');
     this.persist();
-    mockLog('Storage', 'resetAllData');
   }
 }

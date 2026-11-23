@@ -1,56 +1,66 @@
-import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Timer, Dumbbell, BarChart2, Settings } from 'lucide-react';
-import Dock from './ui/Dock';
+import { Home, PlayCircle, Layers, BarChart2, Settings } from 'lucide-react';
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/', icon: <Home className="w-5 h-5" />, label: 'Home' },
-    { path: '/plank', icon: <Timer className="w-5 h-5" />, label: 'Prancha' },
-    { path: '/exercises', icon: <Dumbbell className="w-5 h-5" />, label: 'Exercícios' },
-    { path: '/progress', icon: <BarChart2 className="w-5 h-5" />, label: 'Progresso' },
-    { path: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Config.' },
+    { path: '/', icon: Home, label: 'Início' },
+    { path: '/train', altPath: '/plank', icon: PlayCircle, label: 'Treinar' },
+    { path: '/exercises', icon: Layers, label: 'Biblioteca' },
+    { path: '/progress', icon: BarChart2, label: 'Progresso' },
+    { path: '/settings', icon: Settings, label: 'Ajustes' },
   ];
 
-  const dockItems = navItems.map((item) => {
-    const isActive = location.pathname === item.path;
-    return {
-      icon: (
-        <div className={`transition-colors ${isActive ? 'text-app-primary' : 'text-app-textMuted'}`}>
-          {item.icon}
-        </div>
-      ),
-      label: item.label,
-      onClick: () => navigate(item.path),
-      className: isActive ? 'dock-active' : '',
-    };
-  });
-
   return (
-    <div className="min-h-screen bg-app-bg text-app-text flex justify-center w-full">
-      <div className="w-full max-w-[430px] h-screen flex flex-col relative bg-app-bg shadow-2xl overflow-hidden">
-        {/* Ambient background orbs */}
-        <div className="ambient-orb ambient-orb-amber w-64 h-64 -top-20 -right-20" />
-        <div className="ambient-orb ambient-orb-teal w-48 h-48 bottom-32 -left-16" />
-
-        <main className="flex-1 overflow-y-auto no-scrollbar pb-28">
+    <div className="min-h-screen bg-canvas text-ink flex justify-center w-full sm:py-4">
+      <div className="w-full max-w-[460px] min-h-screen sm:min-h-[calc(100vh-2rem)] sm:max-h-[920px] flex flex-col relative bg-canvas sm:rounded-[28px] sm:border sm:border-border-token sm:shadow-elevated overflow-hidden">
+        <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
           <Outlet />
         </main>
 
-        {/* ReactBits Dock Navigation */}
-        <div className="absolute bottom-0 left-0 right-0 z-50 pb-safe">
-          <Dock
-            items={dockItems}
-            panelHeight={60}
-            baseItemSize={40}
-            magnification={56}
-            distance={120}
-            spring={{ mass: 0.1, stiffness: 170, damping: 14 }}
-          />
-        </div>
+        {/* Ergonomic Bottom Navigation Bar */}
+        <nav
+          aria-label="Navegação principal"
+          className="sticky bottom-0 left-0 right-0 z-40 border-t border-border-token backdrop-blur-xl pb-safe"
+          style={{ backgroundColor: 'var(--bg-dock)' }}
+        >
+          <div className="grid grid-cols-5 px-2 py-2 gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                location.pathname === item.path ||
+                (item.altPath && location.pathname === item.altPath);
+
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => navigate(item.path)}
+                  className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all min-h-[50px] ${
+                    isActive
+                      ? 'text-modality-time bg-modality-time-soft/70'
+                      : 'text-ink-muted hover:text-ink hover:bg-subtle/60'
+                  }`}
+                >
+                  <Icon
+                    className={`w-5 h-5 transition-transform ${
+                      isActive ? 'scale-105 stroke-[2.3]' : 'stroke-[1.9]'
+                    }`}
+                  />
+                  <span
+                    className={`text-[10px] mt-1 tracking-tight ${
+                      isActive ? 'font-bold' : 'font-medium'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );

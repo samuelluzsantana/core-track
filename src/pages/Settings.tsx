@@ -1,325 +1,264 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import {
-  Settings as SettingsIcon,
-  Trash2,
-  RotateCcw,
-  AlertTriangle,
-  ChevronRight,
+  Sun,
+  Moon,
+  Monitor,
   Activity,
   Target,
   Zap,
   Shield,
-  X,
+  RotateCcw,
+  Trash2,
+  AlertTriangle,
+  LogOut,
   Check,
 } from 'lucide-react';
-import {
-  getAppData,
-  resetStreak,
-  resetAllData,
-  updatePainLevel,
-  updateObjective,
-  updateExperienceLevel,
-  clearPlankHistory,
-  clearExerciseHistory,
-  initLombarLevel,
-} from '../utils/storage';
-import { calculateIPC, getLombarLevelInfo, LOMBAR_LEVELS } from '../utils/ipcAlgorithm';
-import { NumberTicker } from '../components/ui/NumberTicker';
-import { AppData, Objective, ExperienceLevel } from '../types';
-
-// ─── Confirm Dialog ─────────────────────────────────────────
-
-function ConfirmDialog({
-  isOpen,
-  title,
-  message,
-  confirmLabel,
-  danger,
-  onConfirm,
-  onCancel,
-}: {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  confirmLabel: string;
-  danger?: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-            onClick={onCancel}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-6"
-          >
-            <div className="glass-card rounded-2xl p-6 max-w-sm w-full">
-              <h3 className="text-lg font-bold text-app-text mb-2">{title}</h3>
-              <p className="text-sm text-app-textMuted mb-6">{message}</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={onCancel}
-                  className="flex-1 py-3 rounded-xl glass-card-light text-app-textMuted font-medium hover:text-app-text transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={onConfirm}
-                  className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
-                    danger
-                      ? 'bg-app-danger text-white hover:bg-red-600'
-                      : 'bg-app-primary text-black hover:bg-amber-400'
-                  }`}
-                >
-                  {confirmLabel}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
-// ─── Settings Page ──────────────────────────────────────────
+import { useAppData } from '../contexts/AppDataContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { getLombarLevelInfo, LOMBAR_LEVELS } from '../utils/ipcAlgorithm';
+import { ExperienceLevel, Objective, ThemePreference } from '../types';
 
 export function Settings() {
-  const navigate = useNavigate();
-  const [data, setData] = useState<AppData | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{
+  const { user, signOut } = useAuth();
+  const { preference } = useTheme();
+  const {
+    profile,
+    ipc,
+    saveProfile,
+    setThemeAndSync,
+    resetStreak,
+    clearHistory,
+    resetAllData,
+  } = useAppData();
+
+  const [toast, setToast] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<{
     title: string;
     message: string;
-    confirmLabel: string;
+    label: string;
     danger?: boolean;
-    action: () => void;
+    onConfirm: () => Promise<void>;
   } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const reload = () => {
-    const d = getAppData();
-    initLombarLevel();
-    setData(getAppData());
-  };
-
-  useEffect(() => {
-    reload();
-  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2400);
   };
 
-  if (!data || !data.profile) return null;
+  if (!profile) return null;
 
-  const ipcResult = calculateIPC(data);
-  const lombarInfo = getLombarLevelInfo(data.lombarLevel?.currentLevel ?? 0);
-  const ipcPercent = Math.round(ipcResult.components.ipc * 100);
+  const ipcPercent = Math.round(ipc.components.ipc * 100);
+  const lombarInfo = getLombarLevelInfo(profile.lombarLevel?.currentLevel ?? 0);
 
   return (
-    <div className="p-6 pt-10 pb-8 space-y-6">
-      <motion.h1
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-2xl font-bold flex items-center gap-3"
-      >
-        <SettingsIcon className="w-6 h-6 text-app-textMuted" />
-        Configurações
-      </motion.h1>
-
-      {/* ─── IPC Dashboard ──────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-      >
-        <h2 className="text-[11px] uppercase tracking-wider text-app-textMuted font-semibold mb-3">
-          Índice de Prontidão do Core (IPC)
-        </h2>
-        <div
-          className="glass-card p-5 rounded-2xl"
-          style={{ borderColor: `${ipcResult.color}30` }}
+    <div className="px-5 pt-7 pb-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight">
+            Configurações
+          </h1>
+          <p className="text-xs text-ink-muted mt-0.5 truncate max-w-[240px]">
+            {user?.email || 'Conta conectada'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="px-3 py-2 rounded-xl surface-card text-xs font-semibold text-ink-secondary hover:text-modality-danger flex items-center gap-1.5"
         >
-          {/* Main IPC Score */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{ipcResult.emoji}</span>
-              <div>
-                <div className="font-bold text-app-text text-lg">{ipcResult.label}</div>
-                <div className="text-xs text-app-textMuted">{ipcResult.description}</div>
+          <LogOut className="w-3.5 h-3.5" />
+          Sair
+        </button>
+      </div>
+
+      {/* Theme Switcher: Claro / Escuro / Sistema */}
+      <section className="space-y-2.5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+          Aparência & Tema
+        </h2>
+        <div className="surface-card rounded-2xl p-1.5 grid grid-cols-3 gap-1.5">
+          {(
+            [
+              { id: 'light', label: 'Claro', icon: Sun },
+              { id: 'dark', label: 'Escuro', icon: Moon },
+              { id: 'system', label: 'Sistema', icon: Monitor },
+            ] as const
+          ).map((opt) => {
+            const Icon = opt.icon;
+            const active = preference === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  setThemeAndSync(opt.id as ThemePreference);
+                  showToast(`Tema ${opt.label} ativado`);
+                }}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  active
+                    ? 'bg-modality-cardio text-white shadow-sm'
+                    : 'text-ink-secondary hover:bg-subtle'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* IPC Engine Overview */}
+      <section className="space-y-2.5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+          Motor Adaptativo (IPC)
+        </h2>
+        <div className="surface-card rounded-2xl p-4 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-display font-bold text-base text-ink">
+                {ipc.label}
+              </div>
+              <p className="text-xs text-ink-secondary mt-1 leading-relaxed">
+                {ipc.description}
+              </p>
+            </div>
+            <span className="text-2xl font-mono font-extrabold text-modality-time tabular-nums shrink-0">
+              {ipcPercent}%
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            <div>
+              <div className="flex justify-between text-[11px] font-medium text-ink-muted mb-1">
+                <span>ECS — Consistência & Tendência</span>
+                <span className="font-mono tabular-nums">
+                  {Math.round(ipc.components.ecs * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-subtle overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-modality-time"
+                  style={{ width: `${ipc.components.ecs * 100}%` }}
+                />
               </div>
             </div>
-            <div
-              className="text-3xl font-bold"
-              style={{ color: ipcResult.color }}
-            >
-              <NumberTicker value={ipcPercent} className="" />
-              <span className="text-sm text-app-textMuted ml-0.5">%</span>
+            <div>
+              <div className="flex justify-between text-[11px] font-medium text-ink-muted mb-1">
+                <span>ERE — Resposta Pós-Treino</span>
+                <span className="font-mono tabular-nums">
+                  {Math.round(ipc.components.ere * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-subtle overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-modality-reps"
+                  style={{ width: `${ipc.components.ere * 100}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[11px] font-medium text-ink-muted mb-1">
+                <span>Conforto Lombar (Dor Inversa)</span>
+                <span className="font-mono tabular-nums">
+                  {Math.round(ipc.components.dorInversa * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-subtle overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-modality-mobility"
+                  style={{ width: `${ipc.components.dorInversa * 100}%` }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Component Bars */}
-          <div className="space-y-3 mt-4">
+          <div className="pt-3 border-t border-border-token flex items-center justify-between">
             <div>
-              <div className="flex justify-between text-[10px] text-app-textMuted mb-1 uppercase tracking-wide">
-                <span>ECS — Estabilidade</span>
-                <span>{Math.round(ipcResult.components.ecs * 100)}%</span>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+                Nível Adaptativo Atual
               </div>
-              <div className="h-1.5 bg-app-bg rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${ipcResult.components.ecs * 100}%` }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+              <div className="text-sm font-bold text-ink">{lombarInfo.label}</div>
+              <div className="text-xs text-ink-muted">{lombarInfo.desc}</div>
+            </div>
+            <div className="flex gap-1">
+              {LOMBAR_LEVELS.map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    i <= (profile.lombarLevel?.currentLevel ?? 0)
+                      ? 'bg-modality-time'
+                      : 'bg-subtle border border-border-token'
+                  }`}
                 />
-              </div>
-              <div className="flex justify-between text-[9px] text-app-textMuted/60 mt-0.5">
-                <span>Freq: {Math.round(ipcResult.components.freqScore * 100)}%</span>
-                <span>Trend: {Math.round(ipcResult.components.trendScore * 100)}%</span>
-              </div>
+              ))}
             </div>
-
-            <div>
-              <div className="flex justify-between text-[10px] text-app-textMuted mb-1 uppercase tracking-wide">
-                <span>ERE — Resposta</span>
-                <span>{Math.round(ipcResult.components.ere * 100)}%</span>
-              </div>
-              <div className="h-1.5 bg-app-bg rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${ipcResult.components.ere * 100}%` }}
-                  transition={{ duration: 0.8, delay: 0.3 }}
-                  className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-[10px] text-app-textMuted mb-1 uppercase tracking-wide">
-                <span>Dor Inversa</span>
-                <span>{Math.round(ipcResult.components.dorInversa * 100)}%</span>
-              </div>
-              <div className="h-1.5 bg-app-bg rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${ipcResult.components.dorInversa * 100}%` }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
-                  className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Lombar Level */}
-          <div className="mt-5 pt-4 border-t border-app-border/40">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[10px] uppercase tracking-wide text-app-textMuted mb-0.5">Nível Lombar Atual</div>
-                <div className="font-semibold text-app-text">{lombarInfo.label}</div>
-                <div className="text-xs text-app-textMuted">{lombarInfo.desc}</div>
-              </div>
-              <div className="flex items-center gap-1">
-                {LOMBAR_LEVELS.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      i <= (data.lombarLevel?.currentLevel ?? 0)
-                        ? 'bg-app-primary'
-                        : 'bg-app-border/40'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-            {data.lombarLevel && (
-              <div className="text-[10px] text-app-textMuted mt-2">
-                {data.lombarLevel.weeksAtCurrentLevel} semana(s) neste nível
-                {ipcResult.decision === 'avancar_nivel' && (
-                  <span className="text-green-400 ml-1">• Pronto para avançar!</span>
-                )}
-              </div>
-            )}
           </div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* ─── Profile Settings ───────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <h2 className="text-[11px] uppercase tracking-wider text-app-textMuted font-semibold mb-3">
-          Perfil
+      {/* Profile Calibration */}
+      <section className="space-y-2.5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+          Perfil & Calibração de Segurança
         </h2>
-        <div className="glass-card rounded-2xl divide-y divide-app-border/30 overflow-hidden">
-          {/* Pain Level */}
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-app-primary" />
-                <span className="text-sm font-medium">Nível de Dor</span>
-              </div>
-              <span className="text-sm font-bold text-app-primary">{data.profile.painLevel}</span>
+        <div className="surface-card rounded-2xl divide-y divide-border-token overflow-hidden">
+          <div className="p-4 space-y-2.5">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-semibold text-ink flex items-center gap-2">
+                <Activity className="w-4 h-4 text-modality-time" />
+                Nível de Dor Hoje
+              </span>
+              <span className="text-base font-mono font-extrabold text-modality-time tabular-nums">
+                {profile.painLevel}/10
+              </span>
             </div>
             <input
               type="range"
-              min="1"
-              max="10"
-              value={data.profile.painLevel}
-              onChange={(e) => {
-                updatePainLevel(parseInt(e.target.value));
-                reload();
-              }}
-              className="w-full"
+              min={1}
+              max={10}
+              value={profile.painLevel}
+              onChange={(e) =>
+                saveProfile({ painLevel: parseInt(e.target.value, 10) })
+              }
+              className="pain-slider"
             />
-            <div className="flex justify-between text-[9px] text-app-textMuted mt-1">
-              <span>Sem dor</span>
-              <span>Dor extrema</span>
+            <div className="flex justify-between text-[10px] text-ink-muted">
+              <span>1 (Sem dor)</span>
+              <span>4+ (Bloqueia alto impacto)</span>
+              <span>7+ (Só mobilidade)</span>
             </div>
           </div>
 
-          {/* Objective */}
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="w-4 h-4 text-app-primary" />
-              <span className="text-sm font-medium">Objetivo</span>
+          <div className="p-4 space-y-2.5">
+            <div className="text-sm font-semibold text-ink flex items-center gap-2">
+              <Target className="w-4 h-4 text-modality-reps" />
+              Objetivo Principal
             </div>
-            <div className="flex gap-2">
-              {([
-                { id: 'alivio', label: 'Alívio', icon: Shield },
-                { id: 'fortalecimento', label: 'Fortalecer', icon: Target },
-                { id: 'performance', label: 'Performance', icon: Zap },
-              ] as const).map((opt) => {
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { id: 'alivio', label: 'Alívio', icon: Shield },
+                  { id: 'fortalecimento', label: 'Fortalecer', icon: Target },
+                  { id: 'performance', label: 'Performance', icon: Zap },
+                ] as const
+              ).map((opt) => {
                 const Icon = opt.icon;
-                const isSelected = data.profile?.objective === opt.id;
+                const active = profile.objective === opt.id;
                 return (
                   <button
                     key={opt.id}
-                    onClick={() => {
-                      updateObjective(opt.id as Objective);
-                      reload();
-                    }}
-                    className={`flex-1 py-2 px-2 rounded-lg text-[11px] font-medium transition-all flex flex-col items-center gap-1 ${
-                      isSelected
-                        ? 'bg-app-primary/15 text-app-primary border border-app-primary/30'
-                        : 'bg-app-bg/50 text-app-textMuted border border-transparent hover:border-app-border'
+                    type="button"
+                    onClick={() => saveProfile({ objective: opt.id as Objective })}
+                    className={`py-2.5 px-2 rounded-xl text-xs font-semibold border flex flex-col items-center gap-1 transition-all ${
+                      active
+                        ? 'bg-modality-reps-soft text-modality-reps border-modality-reps-border'
+                        : 'bg-subtle text-ink-secondary border-transparent'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-4 h-4" />
                     {opt.label}
                   </button>
                 );
@@ -327,201 +266,183 @@ export function Settings() {
             </div>
           </div>
 
-          {/* Experience Level */}
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-app-primary" />
-              <span className="text-sm font-medium">Experiência</span>
+          <div className="p-4 space-y-2.5">
+            <div className="text-sm font-semibold text-ink flex items-center gap-2">
+              <Zap className="w-4 h-4 text-modality-cardio" />
+              Experiência & Ritmo
             </div>
-            <div className="flex gap-2">
-              {([
-                { id: 'iniciante', label: 'Iniciante', inc: '+5s' },
-                { id: 'moderado', label: 'Moderado', inc: '+10s' },
-                { id: 'avancado', label: 'Avançado', inc: '+15s' },
-              ] as const).map((opt) => {
-                const isSelected = data.profile?.experienceLevel === opt.id;
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { id: 'iniciante', label: 'Iniciante', sub: '+5s / leve' },
+                  { id: 'moderado', label: 'Moderado', sub: '+10s / médio' },
+                  { id: 'avancado', label: 'Avançado', sub: '+15s / alto' },
+                ] as const
+              ).map((opt) => {
+                const active = profile.experienceLevel === opt.id;
                 return (
                   <button
                     key={opt.id}
-                    onClick={() => {
-                      updateExperienceLevel(opt.id as ExperienceLevel);
-                      reload();
-                    }}
-                    className={`flex-1 py-2.5 rounded-lg text-[11px] font-medium transition-all ${
-                      isSelected
-                        ? 'bg-app-primary/15 text-app-primary border border-app-primary/30'
-                        : 'bg-app-bg/50 text-app-textMuted border border-transparent hover:border-app-border'
+                    type="button"
+                    onClick={() =>
+                      saveProfile({ experienceLevel: opt.id as ExperienceLevel })
+                    }
+                    className={`py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
+                      active
+                        ? 'bg-modality-cardio-soft text-modality-cardio border-modality-cardio-border'
+                        : 'bg-subtle text-ink-secondary border-transparent'
                     }`}
                   >
                     <div>{opt.label}</div>
-                    <div className="text-[9px] opacity-60 mt-0.5">{opt.inc}</div>
+                    <div className="text-[10px] opacity-75 mt-0.5">{opt.sub}</div>
                   </button>
                 );
               })}
             </div>
           </div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* ─── Data Management ────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <h2 className="text-[11px] uppercase tracking-wider text-app-textMuted font-semibold mb-3">
+      {/* Data Management */}
+      <section className="space-y-2.5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
           Gerenciar Dados
         </h2>
-        <div className="glass-card rounded-2xl divide-y divide-app-border/30 overflow-hidden">
+        <div className="surface-card rounded-2xl divide-y divide-border-token overflow-hidden">
           <button
+            type="button"
             onClick={() =>
-              setConfirmAction({
-                title: 'Limpar Sequência?',
-                message: 'Seu streak será zerado. Dados de treino serão mantidos.',
-                confirmLabel: 'Zerar Streak',
-                action: () => {
-                  resetStreak();
-                  reload();
-                  showToast('Sequência zerada');
+              setConfirming({
+                title: 'Zerar Sequência?',
+                message: 'Seu streak diário voltará a 0, mantendo todo o histórico.',
+                label: 'Zerar Streak',
+                onConfirm: async () => {
+                  await resetStreak();
+                  showToast('Streak zerado');
                 },
               })
             }
-            className="w-full p-4 flex items-center gap-3 text-left hover:bg-app-bg/30 transition-colors"
+            className="w-full p-4 flex items-center gap-3 text-left hover:bg-surface-hover"
           >
-            <RotateCcw className="w-5 h-5 text-app-textMuted" />
+            <RotateCcw className="w-4 h-4 text-ink-muted" />
             <div className="flex-1">
-              <div className="text-sm font-medium text-app-text">Zerar Sequência (Streak)</div>
-              <div className="text-[11px] text-app-textMuted">Reiniciar contagem de dias consecutivos</div>
+              <div className="text-sm font-semibold text-ink">Zerar Sequência</div>
+              <div className="text-xs text-ink-muted">Reiniciar contagem de dias seguidos</div>
             </div>
-            <ChevronRight className="w-4 h-4 text-app-textMuted" />
           </button>
 
           <button
+            type="button"
             onClick={() =>
-              setConfirmAction({
-                title: 'Limpar Histórico de Prancha?',
-                message: 'Todas as sessões de prancha serão apagadas permanentemente.',
-                confirmLabel: 'Apagar',
+              setConfirming({
+                title: 'Apagar Histórico de Treinos?',
+                message: 'Todos os logs de treinos registrados serão excluídos.',
+                label: 'Apagar Histórico',
                 danger: true,
-                action: () => {
-                  clearPlankHistory();
-                  reload();
-                  showToast('Histórico de prancha apagado');
+                onConfirm: async () => {
+                  await clearHistory();
+                  showToast('Histórico apagado');
                 },
               })
             }
-            className="w-full p-4 flex items-center gap-3 text-left hover:bg-app-bg/30 transition-colors"
+            className="w-full p-4 flex items-center gap-3 text-left hover:bg-surface-hover"
           >
-            <Trash2 className="w-5 h-5 text-app-textMuted" />
+            <Trash2 className="w-4 h-4 text-ink-muted" />
             <div className="flex-1">
-              <div className="text-sm font-medium text-app-text">Limpar Histórico de Prancha</div>
-              <div className="text-[11px] text-app-textMuted">Apagar todas as sessões de prancha</div>
+              <div className="text-sm font-semibold text-ink">Limpar Histórico</div>
+              <div className="text-xs text-ink-muted">Remover todas as sessões registradas</div>
             </div>
-            <ChevronRight className="w-4 h-4 text-app-textMuted" />
           </button>
 
           <button
+            type="button"
             onClick={() =>
-              setConfirmAction({
-                title: 'Limpar Histórico de Exercícios?',
-                message: 'Todas as sessões de exercícios serão apagadas permanentemente.',
-                confirmLabel: 'Apagar',
+              setConfirming({
+                title: 'Resetar Conta Completa?',
+                message: 'Apaga histórico, rotinas, exercícios customizados e reinicia o onboarding.',
+                label: 'Resetar Tudo',
                 danger: true,
-                action: () => {
-                  clearExerciseHistory();
-                  reload();
-                  showToast('Histórico de exercícios apagado');
+                onConfirm: async () => {
+                  await resetAllData();
+                  showToast('Dados resetados');
                 },
               })
             }
-            className="w-full p-4 flex items-center gap-3 text-left hover:bg-app-bg/30 transition-colors"
+            className="w-full p-4 flex items-center gap-3 text-left hover:bg-modality-danger-soft/40"
           >
-            <Trash2 className="w-5 h-5 text-app-textMuted" />
+            <AlertTriangle className="w-4 h-4 text-modality-danger" />
             <div className="flex-1">
-              <div className="text-sm font-medium text-app-text">Limpar Histórico de Exercícios</div>
-              <div className="text-[11px] text-app-textMuted">Apagar todas as sessões de core</div>
+              <div className="text-sm font-semibold text-modality-danger">
+                Resetar Todos os Dados
+              </div>
+              <div className="text-xs text-ink-muted">Volta à calibração inicial</div>
             </div>
-            <ChevronRight className="w-4 h-4 text-app-textMuted" />
           </button>
         </div>
-      </motion.section>
-
-      {/* ─── Danger Zone ────────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <h2 className="text-[11px] uppercase tracking-wider text-app-danger/80 font-semibold mb-3">
-          Zona de Perigo
-        </h2>
-        <button
-          onClick={() =>
-            setConfirmAction({
-              title: 'Resetar Tudo?',
-              message:
-                'TODOS os dados serão apagados: perfil, histórico, streak, cache. Esta ação é irreversível. O app voltará à tela de onboarding.',
-              confirmLabel: 'Resetar Tudo',
-              danger: true,
-              action: () => {
-                resetAllData();
-                window.location.href = '/';
-              },
-            })
-          }
-          className="w-full glass-card border-app-danger/20 p-4 rounded-2xl flex items-center gap-3 text-left hover:border-app-danger/40 transition-colors"
-        >
-          <div className="w-10 h-10 bg-app-danger/10 rounded-xl flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-app-danger" />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-medium text-app-danger">Resetar Todos os Dados</div>
-            <div className="text-[11px] text-app-textMuted">Apaga tudo e volta ao onboarding</div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-app-danger/50" />
-        </button>
-      </motion.section>
-
-      {/* App Info */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.25 }}
-        className="text-center pt-4 pb-4"
-      >
-        <div className="text-[10px] text-app-textMuted/50 uppercase tracking-wider">
-          CoreTracker v2.0
-        </div>
-        <div className="text-[10px] text-app-textMuted/30 mt-0.5">
-          IPC Algorithm • ExerciseDB OSS
-        </div>
-      </motion.div>
+      </section>
 
       {/* Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={!!confirmAction}
-        title={confirmAction?.title || ''}
-        message={confirmAction?.message || ''}
-        confirmLabel={confirmAction?.confirmLabel || ''}
-        danger={confirmAction?.danger}
-        onConfirm={() => {
-          confirmAction?.action();
-          setConfirmAction(null);
-        }}
-        onCancel={() => setConfirmAction(null)}
-      />
+      <AnimatePresence>
+        {confirming && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50"
+              onClick={() => setConfirming(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              className="fixed inset-0 flex items-center justify-center p-6 z-50"
+            >
+              <div className="surface-card rounded-2xl p-5 max-w-sm w-full space-y-4">
+                <h3 className="font-display font-bold text-lg text-ink">
+                  {confirming.title}
+                </h3>
+                <p className="text-xs text-ink-secondary leading-relaxed">
+                  {confirming.message}
+                </p>
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(null)}
+                    className="flex-1 py-2.5 rounded-xl bg-subtle text-ink-secondary font-semibold text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await confirming.onConfirm();
+                      setConfirming(null);
+                    }}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs text-white ${
+                      confirming.danger ? 'bg-modality-danger' : 'bg-modality-cardio'
+                    }`}
+                  >
+                    {confirming.label}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 glass-card px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg"
+            exit={{ opacity: 0, y: 24 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 surface-card px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-elevated"
           >
-            <Check className="w-4 h-4 text-app-primary" />
-            <span className="text-sm font-medium text-app-text">{toast}</span>
+            <Check className="w-4 h-4 text-modality-mobility" />
+            <span className="text-xs font-semibold text-ink">{toast}</span>
           </motion.div>
         )}
       </AnimatePresence>

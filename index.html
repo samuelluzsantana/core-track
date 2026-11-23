@@ -3,15 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="description" content="CoreTracker — App de tracking adaptativo para exercícios de core. Fortaleça abdômen e lombar com progressão inteligente e segura." />
-    <meta name="theme-color" content="#0F0F14" />
-    <meta property="og:title" content="CoreTracker — Fortalecimento de Core Adaptativo" />
-    <meta property="og:description" content="Exercícios de prancha e core com progressão adaptativa ao seu nível de dor e experiência." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="CoreTrack Hybrid — Plataforma modular e adaptativa para treinos de core, força, mobilidade e cardio/HIIT." />
+    <meta name="theme-color" content="#F4F5F7" />
+    <meta property="og:title" content="CoreTrack Hybrid — Treinos Adaptativos" />
+    <meta property="og:description" content="Isometria, força, mobilidade e cardio intervalado com motor adaptativo de segurança." />
     <meta property="og:type" content="website" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>CoreTracker — Fortalecimento de Core Adaptativo</title>
+    <title>CoreTrack Hybrid — Treinos Adaptativos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem('coretracker_theme_preference') || 'light';
+          var resolved =
+            pref === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : pref;
+          document.documentElement.setAttribute('data-theme', resolved);
+          if (resolved === 'dark') document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

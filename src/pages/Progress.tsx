@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
@@ -13,321 +14,446 @@ import {
   Radar,
 } from 'recharts';
 import { motion } from 'framer-motion';
-import { Flame, Trophy, Calendar, Activity, TrendingUp } from 'lucide-react';
-import { getAppData, getWeeklyVolume, getMonthlyVolume } from '../utils/storage';
-import { aggregateMuscleWork } from '../utils/exerciseApi';
-import { AppData } from '../types';
+import {
+  Flame,
+  Trophy,
+  Activity,
+  Clock,
+  TrendingUp,
+  Calendar,
+} from 'lucide-react';
+import { useAppData } from '../contexts/AppDataContext';
+import { useTheme } from '../contexts/ThemeContext';
+import {
+  aggregateMuscleWork,
+  generateConsistencyHeatmap,
+  getExercisePR,
+  getVolumeSummary,
+} from '../utils/ipcAlgorithm';
 import { NumberTicker } from '../components/ui/NumberTicker';
+import { MODALITY_LABELS } from '../data/seedCatalog';
+
+type ChartMetric = 'active_min' | 'plank_sec' | 'reps' | 'cardio_min';
 
 export function Progress() {
-  const [data, setData] = useState<AppData | null>(null);
-  const [volumePeriod, setVolumePeriod] = useState<'week' | 'month'>('week');
+  const { profile, logs } = useAppData();
+  const { resolvedTheme } = useTheme();
+  const [period, setPeriod] = useState<'week' | 'month'>('week');
+  const [metric, setMetric] = useState<ChartMetric>('active_min');
 
-  useEffect(() => {
-    setData(getAppData());
-  }, []);
+  const daysWindow = period === 'week' ? 7 : 30;
+  const volume = useMemo(
+    () => getVolumeSummary(logs, daysWindow),
+    [logs, daysWindow]
+  );
 
-  if (!data) return null;
+  const plankPR = useMemo(() => getExercisePR(logs, 'Plank').bestSeconds, [logs]);
+  const heatmap = useMemo(() => generateConsistencyHeatmap(logs, 35), [logs]);
+  const radarData = useMemo(() => aggregateMuscleWork(logs), [logs]);
 
-  // Chart data
-  const chartData = data.plankSessions
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-10)
-    .map((s) => ({
-      date: new Date(s.date).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-      }),
-      tempo: s.durationSeconds,
-    }));
+  // Unified Trend Series (Ref Image 3 & 5)
+  const trendData = useMemo(() => {
+    const cutoff = Date.now() - daysWindow * 24 * 60 * 60 * 1000;
+    const relevant = [...logs]
+      .filter((l) => new Date(l.performedAt).getTime() >= cutoff)
+      .sort(
+        (a, b) =>
+          new Date(a.performedAt).getTime() - new Date(b.performedAt).getTime()
+      );
 
-  // Radar data
-  const radarData = aggregateMuscleWork(data.exerciseSessions);
-
-  // Volume
-  const weekVol = getWeeklyVolume();
-  const monthVol = getMonthlyVolume();
-  const volume = volumePeriod === 'week' ? weekVol : monthVol;
-
-  // Heatmap generation (last 28 days)
-  const generateHeatmap = () => {
-    const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    for (let i = 27; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const hasPlank = data.plankSessions.some((s) => s.date.startsWith(dateStr));
-      const hasExercise = data.exerciseSessions.some((s) => s.date.startsWith(dateStr));
-      let intensity = 0;
-      if (hasPlank && hasExercise) intensity = 3;
-      else if (hasPlank) intensity = 2;
-      else if (hasExercise) intensity = 1;
-      days.push({ date: d, intensity });
+    if (metric === 'plank_sec') {
+      return relevant
+        .filter(
+          (l) =>
+            l.exerciseExternalId === 'Plank' ||
+            l.exerciseName.toLowerCase().includes('prancha')
+        )
+        .slice(-12)
+        .map((l) => ({
+          date: new Date(l.performedAt).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+          }),
+          value: l.durationSeconds,
+        }));
     }
-    return days;
+
+    // Group by day for active_min, reps, cardio_min
+    const byDay = new Map<string, number>();
+    for (const l of relevant) {
+      if (metric === 'cardio_min' && l.category !== 'cardio' && l.measurementType !== 'interval_based') {
+        continue;
+      }
+      const key = new Date(l.performedAt).toISOString().split('T')[0];
+      const prev = byDay.get(key) || 0;
+      const add =
+        metric === 'reps'
+          ? l.totalReps
+          : Math.max(1, Math.round(l.durationSeconds / 60));
+      byDay.set(key, prev + add);
+    }
+
+    return Array.from(byDay.entries())
+      .slice(-12)
+      .map(([iso, val]) => ({
+        date: new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        }),
+        value: val,
+      }));
+  }, [logs, daysWindow, metric]);
+
+  const metricMeta: Record<
+    ChartMetric,
+    { label: string; unit: string; stroke: string; fill: string }
+  > = {
+    active_min: {
+      label: 'Tempo Ativo',
+      unit: 'min',
+      stroke: resolvedTheme === 'dark' ? '#F59E0B' : '#EA580C',
+      fill: resolvedTheme === 'dark' ? 'rgba(245,158,11,0.22)' : 'rgba(234,88,12,0.14)',
+    },
+    plank_sec: {
+      label: 'Prancha',
+      unit: 's',
+      stroke: resolvedTheme === 'dark' ? '#F59E0B' : '#EA580C',
+      fill: resolvedTheme === 'dark' ? 'rgba(245,158,11,0.22)' : 'rgba(234,88,12,0.14)',
+    },
+    reps: {
+      label: 'Reps & Saltos',
+      unit: 'reps',
+      stroke: resolvedTheme === 'dark' ? '#14B8A6' : '#0D9488',
+      fill: resolvedTheme === 'dark' ? 'rgba(20,184,166,0.22)' : 'rgba(13,148,136,0.14)',
+    },
+    cardio_min: {
+      label: 'Cardio / HIIT',
+      unit: 'min',
+      stroke: resolvedTheme === 'dark' ? '#818CF8' : '#4F46E5',
+      fill: resolvedTheme === 'dark' ? 'rgba(129,140,248,0.22)' : 'rgba(79,70,229,0.14)',
+    },
   };
 
-  const heatmapDays = generateHeatmap();
-  const pr =
-    data.plankSessions.length > 0
-      ? Math.max(...data.plankSessions.map((s) => s.durationSeconds))
-      : 0;
-
-  const totalSessions = data.plankSessions.length + data.exerciseSessions.length;
+  const currentMetric = metricMeta[metric];
+  const streak = profile?.currentStreak ?? 0;
 
   return (
-    <div className="p-6 pt-10 space-y-6 pb-8">
-      <motion.h1
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-2xl font-bold"
-      >
-        Seu Progresso
-      </motion.h1>
+    <div className="px-5 pt-7 pb-8 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight">
+            Analytics Híbrido
+          </h1>
+          <p className="text-xs text-ink-muted mt-0.5">
+            Consolidado entre tempo, força e cardio/HIIT
+          </p>
+        </div>
 
-      {/* Stats Grid */}
+        {/* Period Switch */}
+        <div className="flex p-1 rounded-xl bg-subtle border border-border-token">
+          {(
+            [
+              { id: 'week', label: '7d' },
+              { id: 'month', label: '30d' },
+            ] as const
+          ).map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setPeriod(p.id)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                period === p.id
+                  ? 'bg-surface text-ink shadow-sm'
+                  : 'text-ink-muted'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Top KPI Cards */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="surface-card rounded-2xl p-3 text-center">
+          <Flame className="w-4 h-4 text-modality-time mx-auto mb-1" />
+          <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
+            <NumberTicker value={streak} />
+          </div>
+          <div className="text-[10px] font-semibold text-ink-muted">Streak</div>
+        </div>
+        <div className="surface-card rounded-2xl p-3 text-center">
+          <Clock className="w-4 h-4 text-modality-cardio mx-auto mb-1" />
+          <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
+            <NumberTicker value={volume.totalActiveMinutes} />
+            <span className="text-[10px] font-normal text-ink-muted">m</span>
+          </div>
+          <div className="text-[10px] font-semibold text-ink-muted">Ativo</div>
+        </div>
+        <div className="surface-card rounded-2xl p-3 text-center">
+          <Activity className="w-4 h-4 text-modality-reps mx-auto mb-1" />
+          <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
+            <NumberTicker value={volume.totalReps} />
+          </div>
+          <div className="text-[10px] font-semibold text-ink-muted">Reps</div>
+        </div>
+        <div className="surface-card rounded-2xl p-3 text-center">
+          <Trophy className="w-4 h-4 text-modality-time mx-auto mb-1" />
+          <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
+            {plankPR}
+            <span className="text-[10px] font-normal text-ink-muted">s</span>
+          </div>
+          <div className="text-[10px] font-semibold text-ink-muted">PR Prancha</div>
+        </div>
+      </div>
+
+      {/* Unified Trend Chart (Ref Image 3 & 5) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-3 gap-3"
+        className="surface-card rounded-2xl p-4 space-y-4"
       >
-        <div className="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <Flame className="text-app-primary w-6 h-6 mb-2" />
-          <div className="text-xl font-bold text-app-text">
-            {data.currentStreak > 0 ? (
-              <NumberTicker value={data.currentStreak} className="text-app-text" />
-            ) : '0'}
-          </div>
-          <div className="text-[10px] text-app-textMuted uppercase tracking-wide mt-0.5">Streak</div>
-        </div>
-        <div className="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <Trophy className="text-app-primary w-6 h-6 mb-2" />
-          <div className="text-xl font-bold text-app-text">
-            {pr > 0 ? (
-              <NumberTicker value={pr} className="text-app-text" />
-            ) : '0'}
-            <span className="text-xs text-app-textMuted ml-0.5">s</span>
-          </div>
-          <div className="text-[10px] text-app-textMuted uppercase tracking-wide mt-0.5">Recorde</div>
-        </div>
-        <div className="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <Activity className="text-app-secondary w-6 h-6 mb-2" />
-          <div className="text-xl font-bold text-app-text">
-            {totalSessions > 0 ? (
-              <NumberTicker value={totalSessions} className="text-app-text" />
-            ) : '0'}
-          </div>
-          <div className="text-[10px] text-app-textMuted uppercase tracking-wide mt-0.5">Sessões</div>
-        </div>
-      </motion.div>
-
-      {/* Volume Cards with Toggle */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="glass-card p-4 rounded-2xl"
-      >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-app-textMuted" />
-            <h2 className="text-sm font-semibold">Volume Total</h2>
+            <TrendingUp className="w-4 h-4 text-modality-cardio" />
+            <h2 className="font-display font-bold text-sm text-ink">
+              {currentMetric.label} ({currentMetric.unit})
+            </h2>
           </div>
-          <div className="flex bg-app-bg/50 p-0.5 rounded-lg">
-            <button
-              onClick={() => setVolumePeriod('week')}
-              className={`px-3 py-1 text-[10px] font-medium rounded-md transition-all ${
-                volumePeriod === 'week'
-                  ? 'bg-app-primary text-black'
-                  : 'text-app-textMuted'
-              }`}
-            >
-              Semana
-            </button>
-            <button
-              onClick={() => setVolumePeriod('month')}
-              className={`px-3 py-1 text-[10px] font-medium rounded-md transition-all ${
-                volumePeriod === 'month'
-                  ? 'bg-app-primary text-black'
-                  : 'text-app-textMuted'
-              }`}
-            >
-              Mês
-            </button>
-          </div>
+          {plankPR > 0 && (
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-modality-time-soft text-modality-time border border-modality-time-border flex items-center gap-1">
+              <Trophy className="w-3 h-3" /> PR {plankPR}s
+            </span>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-app-bg/40 p-3 rounded-xl text-center">
-            <div className="text-[10px] text-app-textMuted uppercase tracking-wide mb-1">Prancha</div>
-            <div className="text-lg font-bold text-app-primary">
-              {volume.plankSeconds > 0 ? (
-                <>
-                  <NumberTicker value={Math.floor(volume.plankSeconds / 60)} className="text-app-primary" />
-                  <span className="text-xs text-app-textMuted ml-0.5">m</span>
-                  <span className="text-sm text-app-textMuted ml-1">
-                    {volume.plankSeconds % 60}s
-                  </span>
-                </>
-              ) : '0m 0s'}
-            </div>
-          </div>
-          <div className="bg-app-bg/40 p-3 rounded-xl text-center">
-            <div className="text-[10px] text-app-textMuted uppercase tracking-wide mb-1">Repetições</div>
-            <div className="text-lg font-bold text-app-secondary">
-              {volume.exerciseReps > 0 ? (
-                <NumberTicker value={volume.exerciseReps} className="text-app-secondary" />
-              ) : '0'}
-            </div>
-          </div>
-        </div>
-      </motion.div>
 
-      {/* Line Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="glass-card p-4 rounded-2xl"
-      >
-        <h2 className="text-sm font-semibold mb-5 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-app-textMuted" />
-          Evolução da Prancha
-        </h2>
         <div className="h-48 w-full">
-          {chartData.length > 0 ? (
+          {trendData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <AreaChart data={trendData}>
                 <defs>
-                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#F59E0B" />
-                    <stop offset="100%" stopColor="#F97316" />
+                  <linearGradient id="trendAreaFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={currentMetric.stroke} stopOpacity={0.28} />
+                    <stop offset="95%" stopColor={currentMetric.stroke} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke={resolvedTheme === 'dark' ? '#262B3A' : '#E4E4E7'}
+                />
                 <XAxis
                   dataKey="date"
-                  stroke="#4B5563"
-                  fontSize={10}
+                  tick={{
+                    fill: resolvedTheme === 'dark' ? '#94A3B8' : '#64748B',
+                    fontSize: 10,
+                  }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  stroke="#4B5563"
-                  fontSize={10}
+                  tick={{
+                    fill: resolvedTheme === 'dark' ? '#94A3B8' : '#64748B',
+                    fontSize: 10,
+                  }}
                   tickLine={false}
                   axisLine={false}
-                  width={30}
+                  width={32}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(26, 26, 36, 0.95)',
-                    border: '1px solid rgba(42, 42, 58, 0.6)',
-                    borderRadius: '10px',
-                    backdropFilter: 'blur(12px)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    backgroundColor: resolvedTheme === 'dark' ? '#181C26' : '#FFFFFF',
+                    border: `1px solid ${resolvedTheme === 'dark' ? '#262B3A' : '#E4E4E7'}`,
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.08)',
+                    fontSize: '12px',
                   }}
-                  itemStyle={{ color: '#F59E0B' }}
-                  labelStyle={{ color: '#9CA3AF', fontSize: 11 }}
+                  labelStyle={{
+                    color: resolvedTheme === 'dark' ? '#94A3B8' : '#64748B',
+                  }}
+                  itemStyle={{
+                    color: currentMetric.stroke,
+                    fontWeight: 700,
+                  }}
                 />
-                <Line
+                <Area
                   type="monotone"
-                  dataKey="tempo"
-                  stroke="url(#lineGradient)"
-                  strokeWidth={3}
-                  dot={{ fill: '#F59E0B', strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 6, fill: '#F97316', stroke: '#F59E0B', strokeWidth: 2 }}
+                  dataKey="value"
+                  stroke={currentMetric.stroke}
+                  strokeWidth={2.5}
+                  fill="url(#trendAreaFill)"
+                  dot={{ r: 3.5, fill: currentMetric.stroke, strokeWidth: 0 }}
+                  activeDot={{ r: 5.5, fill: currentMetric.stroke }}
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-app-textMuted text-sm">
-              Nenhum dado de prancha ainda.
+            <div className="h-full flex items-center justify-center text-xs text-ink-muted">
+              Registre treinos para visualizar sua curva de evolução.
             </div>
           )}
         </div>
+
+        {/* Metric selector pills (Ref Image 3 & 5) */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-1">
+          {(Object.keys(metricMeta) as ChartMetric[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMetric(m)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
+                metric === m
+                  ? 'bg-modality-cardio text-white border-modality-cardio'
+                  : 'bg-subtle text-ink-secondary border-border-token hover:text-ink'
+              }`}
+            >
+              {metricMeta[m].label}
+            </button>
+          ))}
+        </div>
       </motion.div>
 
-      {/* Radar Chart — Muscle Balance */}
-      {radarData.length >= 3 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="glass-card p-4 rounded-2xl"
-        >
-          <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-app-textMuted" />
-            Equilíbrio Muscular
+      {/* Consistency Heatmap (GitHub style, 35 days) */}
+      <div className="surface-card rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold text-sm text-ink flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-modality-reps" />
+            Consistência (35 dias)
           </h2>
-          <div className="h-56 w-full">
+          <span className="text-[11px] font-medium text-ink-muted tabular-nums">
+            {logs.length} sessões totais
+          </span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5">
+          {heatmap.map((day) => {
+            const bgClass =
+              day.intensity === 0
+                ? 'bg-subtle border-border-token'
+                : day.intensity === 1
+                  ? 'bg-modality-reps-soft border-modality-reps-border'
+                  : day.intensity === 2
+                    ? 'bg-modality-reps/40 border-modality-reps/50'
+                    : day.intensity === 3
+                      ? 'bg-modality-reps/75 border-modality-reps'
+                      : 'bg-modality-reps border-modality-reps shadow-sm';
+            return (
+              <div
+                key={day.dateStr}
+                title={`${day.label}: ${day.sessions} treino(s), ${day.activeMinutes}min, ${day.reps} reps`}
+                className={`aspect-square rounded-md border ${bgClass} transition-colors`}
+              />
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-end gap-1.5 text-[10px] text-ink-muted">
+          <span>Menos</span>
+          <span className="w-3 h-3 rounded-sm bg-subtle border border-border-token" />
+          <span className="w-3 h-3 rounded-sm bg-modality-reps-soft border border-modality-reps-border" />
+          <span className="w-3 h-3 rounded-sm bg-modality-reps/40" />
+          <span className="w-3 h-3 rounded-sm bg-modality-reps/75" />
+          <span className="w-3 h-3 rounded-sm bg-modality-reps" />
+          <span>Mais</span>
+        </div>
+      </div>
+
+      {/* Muscle Balance Radar */}
+      {radarData.length >= 3 && (
+        <div className="surface-card rounded-2xl p-4">
+          <h2 className="font-display font-bold text-sm text-ink mb-3 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-modality-reps" />
+            Equilíbrio Muscular Consolidado
+          </h2>
+          <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="rgba(42, 42, 58, 0.5)" />
+              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="68%">
+                <PolarGrid
+                  stroke={resolvedTheme === 'dark' ? '#262B3A' : '#E4E4E7'}
+                />
                 <PolarAngleAxis
                   dataKey="muscle"
-                  tick={{ fill: '#9CA3AF', fontSize: 9 }}
+                  tick={{
+                    fill: resolvedTheme === 'dark' ? '#94A3B8' : '#475569',
+                    fontSize: 10,
+                  }}
                 />
-                <PolarRadiusAxis
-                  angle={90}
-                  domain={[0, 100]}
-                  tick={false}
-                  axisLine={false}
-                />
+                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                 <Radar
                   dataKey="value"
-                  stroke="#14B8A6"
-                  fill="#14B8A6"
-                  fillOpacity={0.2}
+                  stroke={resolvedTheme === 'dark' ? '#14B8A6' : '#0D9488'}
+                  fill={resolvedTheme === 'dark' ? '#14B8A6' : '#0D9488'}
+                  fillOpacity={0.22}
                   strokeWidth={2}
                 />
               </RadarChart>
             </ResponsiveContainer>
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Heatmap */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="glass-card p-4 rounded-2xl"
-      >
-        <h2 className="text-sm font-semibold mb-4">
-          Consistência (Últimos 28 dias)
+      {/* History List (Ref Image 5 bottom list) */}
+      <div className="space-y-2.5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+          Histórico Recente
         </h2>
-        <div className="grid grid-cols-7 gap-[6px]">
-          {heatmapDays.map((day, i) => {
-            let bg = 'bg-app-bg/60 border border-app-border/30';
-            if (day.intensity === 1)
-              bg = 'bg-app-secondary/25 border border-app-secondary/30';
-            if (day.intensity === 2)
-              bg = 'bg-app-primary/35 border border-app-primary/40';
-            if (day.intensity === 3)
-              bg = 'bg-app-primary border border-app-primary shadow-sm shadow-app-primary/20';
-            return (
-              <motion.div
-                key={i}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: i * 0.01 }}
-                className={`aspect-square rounded-[5px] ${bg}`}
-                title={day.date.toLocaleDateString('pt-BR')}
-              />
-            );
-          })}
-        </div>
-        <div className="flex items-center justify-end gap-2 mt-4 text-[9px] text-app-textMuted">
-          <span>Menos</span>
-          <div className="w-3 h-3 rounded-sm bg-app-bg/60 border border-app-border/30" />
-          <div className="w-3 h-3 rounded-sm bg-app-secondary/25" />
-          <div className="w-3 h-3 rounded-sm bg-app-primary/35" />
-          <div className="w-3 h-3 rounded-sm bg-app-primary" />
-          <span>Mais</span>
-        </div>
-      </motion.div>
+        {logs.length === 0 ? (
+          <div className="surface-card rounded-2xl p-6 text-center text-xs text-ink-muted">
+            Nenhum treino registrado ainda.
+          </div>
+        ) : (
+          <div className="surface-card rounded-2xl divide-y divide-border-token overflow-hidden">
+            {logs.slice(0, 10).map((log) => {
+              const dotClass =
+                log.measurementType === 'interval_based'
+                  ? 'bg-modality-cardio'
+                  : log.measurementType === 'time_based'
+                    ? 'bg-modality-time'
+                    : 'bg-modality-reps';
+
+              const metricLabel =
+                log.measurementType === 'time_based'
+                  ? `${log.durationSeconds}s`
+                  : log.measurementType === 'interval_based'
+                    ? `${log.roundsCompleted} rounds${log.totalReps > 0 ? ` • ${log.totalReps} saltos` : ''}`
+                    : `${log.roundsCompleted} séries • ${log.totalReps} reps`;
+
+              return (
+                <div
+                  key={log.id}
+                  className="p-3.5 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotClass}`} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-ink truncate">
+                        {log.exerciseName}
+                      </div>
+                      <div className="text-[11px] text-ink-muted">
+                        {new Date(log.performedAt).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                        })}{' '}
+                        • {MODALITY_LABELS[log.measurementType]}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-mono font-bold text-ink tabular-nums">
+                      {metricLabel}
+                    </div>
+                    {log.feedback && (
+                      <div className="text-[10px] text-ink-muted capitalize">
+                        {log.feedback === 'dorAguda' ? 'Dor aguda' : log.feedback}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

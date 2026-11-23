@@ -1,166 +1,209 @@
-/**
- * Seed Data — Fake data for development environment
- * 
- * Provides realistic sample data so the app is fully functional
- * without any backend connection.
- */
-
 import {
-  UserProfile,
-  PlankSession,
-  ExerciseSession,
-  LombarLevelData,
   AppData,
+  UserProfile,
+  WorkoutLog,
 } from '../../types';
-
-// ─── Helper ─────────────────────────────────────────────────────
+import { DEFAULT_ROUTINES, SEED_CATALOG } from '../../data/seedCatalog';
 
 function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  d.setHours(8 + Math.floor(Math.random() * 4), Math.floor(Math.random() * 60), 0, 0);
+  d.setHours(8 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 55), 0, 0);
   return d.toISOString();
 }
 
-function randomFeedback(): 'otimo' | 'ok' | 'desconforto' {
-  const options = ['otimo', 'ok', 'desconforto'] as const;
-  return options[Math.floor(Math.random() * options.length)];
-}
-
-// ─── Seed Profiles ──────────────────────────────────────────────
+export type SeedScenario =
+  | 'beginner'
+  | 'intermediate'
+  | 'advanced'
+  | 'newUser'
+  | 'highPain'
+  | 'empty';
 
 export const SEED_PROFILES: Record<string, UserProfile> = {
   beginner: {
+    displayName: 'Atleta Iniciante',
     painLevel: 3,
     objective: 'alivio',
     experienceLevel: 'iniciante',
+    themePreference: 'light',
     onboardingCompleted: true,
+    weeklyGoalMinutes: 60,
+    currentStreak: 3,
+    lastWorkoutDate: daysAgo(0),
+    lombarLevel: { currentLevel: 1, weeksAtCurrentLevel: 2, levelStartDate: daysAgo(14) },
   },
   intermediate: {
+    displayName: 'Samuel',
     painLevel: 2,
     objective: 'fortalecimento',
     experienceLevel: 'moderado',
+    themePreference: 'light',
     onboardingCompleted: true,
+    weeklyGoalMinutes: 90,
+    currentStreak: 6,
+    lastWorkoutDate: daysAgo(0),
+    lombarLevel: { currentLevel: 2, weeksAtCurrentLevel: 3, levelStartDate: daysAgo(21) },
   },
   advanced: {
+    displayName: 'Atleta Pro',
     painLevel: 1,
     objective: 'performance',
     experienceLevel: 'avancado',
+    themePreference: 'light',
     onboardingCompleted: true,
+    weeklyGoalMinutes: 150,
+    currentStreak: 14,
+    lastWorkoutDate: daysAgo(0),
+    lombarLevel: { currentLevel: 4, weeksAtCurrentLevel: 3, levelStartDate: daysAgo(21) },
   },
   newUser: {
-    painLevel: 5,
+    displayName: 'Novo Usuário',
+    painLevel: 4,
     objective: 'alivio',
     experienceLevel: 'iniciante',
+    themePreference: 'light',
     onboardingCompleted: false,
+    weeklyGoalMinutes: 60,
+    currentStreak: 0,
+    lastWorkoutDate: null,
+    lombarLevel: { currentLevel: 0, weeksAtCurrentLevel: 0, levelStartDate: daysAgo(0) },
   },
   highPain: {
+    displayName: 'Recuperação',
     painLevel: 8,
     objective: 'alivio',
     experienceLevel: 'iniciante',
+    themePreference: 'light',
     onboardingCompleted: true,
+    weeklyGoalMinutes: 45,
+    currentStreak: 2,
+    lastWorkoutDate: daysAgo(0),
+    lombarLevel: { currentLevel: 0, weeksAtCurrentLevel: 1, levelStartDate: daysAgo(7) },
   },
 };
 
-// ─── Seed Plank Sessions ────────────────────────────────────────
+function generateHybridLogs(scenario: SeedScenario): WorkoutLog[] {
+  const count = scenario === 'beginner' ? 10 : scenario === 'advanced' ? 28 : 18;
+  const logs: WorkoutLog[] = [];
 
-export function generatePlankSessions(count: number = 20): PlankSession[] {
-  const sessions: PlankSession[] = [];
   for (let i = 0; i < count; i++) {
-    sessions.push({
-      id: `seed_plank_${i}`,
-      date: daysAgo(count - i),
-      mode: Math.random() > 0.3 ? 'progressao' : 'livre',
-      durationSeconds: 20 + Math.floor(Math.random() * 80), // 20–100s
-      feedback: randomFeedback(),
-    });
+    const daysBack = count - 1 - i;
+    const mod = i % 3;
+
+    if (mod === 0) {
+      const duration = 35 + i * 3;
+      logs.push({
+        id: `seed-log-${i}`,
+        exerciseId: 'sys-plank',
+        exerciseExternalId: 'Plank',
+        exerciseName: 'Prancha Abdominal',
+        category: 'core',
+        measurementType: 'time_based',
+        performedAt: daysAgo(daysBack),
+        durationSeconds: duration,
+        totalReps: 0,
+        totalLoadKg: 0,
+        roundsCompleted: 1,
+        primaryMuscles: ['abdominals', 'lower back'],
+        metrics: { mode: 'progressao', targetSeconds: duration - 5 },
+        feedback: scenario === 'highPain' ? 'desconforto' : 'otimo',
+      });
+    } else if (mod === 1) {
+      const ex = i % 2 === 0 ? SEED_CATALOG[2] : SEED_CATALOG[5]; // Dead Bug or Ponte de Glúteo
+      logs.push({
+        id: `seed-log-${i}`,
+        exerciseId: ex.id,
+        exerciseExternalId: ex.externalId,
+        exerciseName: ex.name,
+        category: ex.category,
+        measurementType: 'reps_based',
+        performedAt: daysAgo(daysBack),
+        durationSeconds: 210,
+        totalReps: 36,
+        totalLoadKg: 0,
+        roundsCompleted: 3,
+        primaryMuscles: ex.primaryMuscles,
+        metrics: {
+          sets: [
+            { setNumber: 1, reps: 12, loadKg: 0, completed: true },
+            { setNumber: 2, reps: 12, loadKg: 0, completed: true },
+            { setNumber: 3, reps: 12, loadKg: 0, completed: true },
+          ],
+          totalSets: 3,
+          avgReps: 12,
+          maxLoadKg: 0,
+        },
+        feedback: 'ok',
+      });
+    } else {
+      if (scenario === 'highPain') {
+        logs.push({
+          id: `seed-log-${i}`,
+          exerciseId: 'sys-cat-cow',
+          exerciseExternalId: 'Cat_Stretch',
+          exerciseName: 'Gato-Camelo (Cat-Cow)',
+          category: 'mobility',
+          measurementType: 'time_based',
+          performedAt: daysAgo(daysBack),
+          durationSeconds: 90,
+          totalReps: 0,
+          totalLoadKg: 0,
+          roundsCompleted: 1,
+          primaryMuscles: ['lower back'],
+          metrics: { mode: 'livre', targetSeconds: 60 },
+          feedback: 'ok',
+        });
+      } else {
+        logs.push({
+          id: `seed-log-${i}`,
+          exerciseId: 'sys-rope-hiit',
+          exerciseExternalId: 'Rope_Jumping_HIIT',
+          exerciseName: 'Pular Corda Intervalado (HIIT)',
+          category: 'cardio',
+          measurementType: 'interval_based',
+          performedAt: daysAgo(daysBack),
+          durationSeconds: 360,
+          totalReps: 480,
+          totalLoadKg: 0,
+          roundsCompleted: 6,
+          primaryMuscles: ['calves', 'quadriceps', 'abdominals'],
+          metrics: { rounds: 6, workSeconds: 40, restSeconds: 20, totalCycles: 480 },
+          feedback: 'otimo',
+        });
+      }
+    }
   }
-  return sessions;
+
+  return logs.reverse();
 }
-
-// ─── Seed Exercise Sessions ─────────────────────────────────────
-
-const EXERCISE_POOL = [
-  { id: 'deadBug', name: 'Dead Bug', muscles: ['Rectus Abdominis', 'Transverse Abdominis'] },
-  { id: 'crunch', name: 'Crunch Curto', muscles: ['Rectus Abdominis'] },
-  { id: 'birdDog', name: 'Bird-Dog', muscles: ['Erector Spinae', 'Gluteus Maximus'] },
-  { id: 'catCow', name: 'Gato-Camelo', muscles: ['Erector Spinae', 'Rectus Abdominis'] },
-  { id: 'ponteGluteo', name: 'Ponte de Glúteo', muscles: ['Gluteus Maximus', 'Hamstrings'] },
-  { id: 'supermanHold', name: 'Superman', muscles: ['Erector Spinae', 'Gluteus Maximus'] },
-];
-
-export function generateExerciseSessions(count: number = 30): ExerciseSession[] {
-  const sessions: ExerciseSession[] = [];
-  for (let i = 0; i < count; i++) {
-    const exercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-    sessions.push({
-      id: `seed_exercise_${i}`,
-      date: daysAgo(count - i),
-      exerciseId: exercise.id,
-      exerciseName: exercise.name,
-      targetMuscles: exercise.muscles,
-      sets: 2 + Math.floor(Math.random() * 3),      // 2–4
-      reps: 8 + Math.floor(Math.random() * 8),       // 8–15
-      feedback: randomFeedback(),
-    });
-  }
-  return sessions;
-}
-
-// ─── Seed Lombar Level ──────────────────────────────────────────
-
-export const SEED_LOMBAR: LombarLevelData = {
-  currentLevel: 2,
-  weeksAtCurrentLevel: 3,
-  levelStartDate: daysAgo(21),
-};
-
-// ─── Full Seed Bundle ───────────────────────────────────────────
-
-export type SeedScenario = 'beginner' | 'intermediate' | 'advanced' | 'newUser' | 'highPain' | 'empty';
 
 export function getSeedData(scenario: SeedScenario = 'intermediate'): AppData {
   if (scenario === 'empty') {
     return {
       profile: null,
-      plankSessions: [],
-      exerciseSessions: [],
-      currentStreak: 0,
-      lastWorkoutDate: null,
+      catalog: [...SEED_CATALOG],
+      routines: [...DEFAULT_ROUTINES],
+      logs: [],
     };
   }
 
   if (scenario === 'newUser') {
     return {
-      profile: SEED_PROFILES.newUser,
-      plankSessions: [],
-      exerciseSessions: [],
-      currentStreak: 0,
-      lastWorkoutDate: null,
+      profile: { ...SEED_PROFILES.newUser },
+      catalog: [...SEED_CATALOG],
+      routines: [...DEFAULT_ROUTINES],
+      logs: [],
     };
   }
 
-  const plankCount = scenario === 'beginner' ? 8 : scenario === 'advanced' ? 35 : 20;
-  const exerciseCount = scenario === 'beginner' ? 12 : scenario === 'advanced' ? 45 : 30;
-
-  const plankSessions = generatePlankSessions(plankCount);
-  const exerciseSessions = generateExerciseSessions(exerciseCount);
-
   return {
-    profile: SEED_PROFILES[scenario] ?? SEED_PROFILES.intermediate,
-    plankSessions,
-    exerciseSessions,
-    currentStreak: scenario === 'advanced' ? 14 : scenario === 'beginner' ? 3 : 7,
-    lastWorkoutDate: daysAgo(0),
-    lombarLevel: {
-      currentLevel: scenario === 'advanced' ? 4 : scenario === 'beginner' ? 1 : 2,
-      weeksAtCurrentLevel: scenario === 'advanced' ? 2 : 3,
-      levelStartDate: daysAgo(scenario === 'advanced' ? 14 : 21),
-    },
+    profile: { ...(SEED_PROFILES[scenario] ?? SEED_PROFILES.intermediate) },
+    catalog: [...SEED_CATALOG],
+    routines: [...DEFAULT_ROUTINES],
+    logs: generateHybridLogs(scenario),
   };
 }
-
-// ─── Mock Users ─────────────────────────────────────────────────
 
 export const MOCK_USERS = [
   {
@@ -169,19 +212,5 @@ export const MOCK_USERS = [
     displayName: 'Dev User',
     avatarUrl: undefined,
     password: 'dev123',
-  },
-  {
-    id: 'mock-user-002',
-    email: 'admin@coretracker.local',
-    displayName: 'Admin User',
-    avatarUrl: undefined,
-    password: 'admin123',
-  },
-  {
-    id: 'mock-user-003',
-    email: 'tester@coretracker.local',
-    displayName: 'Test User',
-    avatarUrl: undefined,
-    password: 'test123',
   },
 ];

@@ -1,53 +1,62 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: ['class', '[data-theme="dark"]'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
+        canvas: 'var(--bg-canvas)',
+        subtle: 'var(--bg-subtle)',
+        surface: 'var(--bg-surface)',
+        'surface-hover': 'var(--bg-surface-hover)',
+        'border-token': 'var(--border-subtle)',
+        'border-strong': 'var(--border-strong)',
+        ink: 'var(--text-primary)',
+        'ink-secondary': 'var(--text-secondary)',
+        'ink-muted': 'var(--text-muted)',
+        modality: {
+          time: 'var(--accent-time)',
+          'time-soft': 'var(--accent-time-soft)',
+          'time-border': 'var(--accent-time-border)',
+          reps: 'var(--accent-reps)',
+          'reps-soft': 'var(--accent-reps-soft)',
+          'reps-border': 'var(--accent-reps-border)',
+          cardio: 'var(--accent-cardio)',
+          'cardio-soft': 'var(--accent-cardio-soft)',
+          'cardio-border': 'var(--accent-cardio-border)',
+          mobility: 'var(--accent-mobility)',
+          'mobility-soft': 'var(--accent-mobility-soft)',
+          'mobility-border': 'var(--accent-mobility-border)',
+          danger: 'var(--accent-danger)',
+          'danger-soft': 'var(--accent-danger-soft)',
+          'danger-border': 'var(--accent-danger-border)',
+        },
         app: {
-          bg: "#0F0F14",
-          card: "#1A1A24",
-          border: "#2A2A3A",
-          primary: "#F59E0B", // Amber/Orange
-          secondary: "#14B8A6", // Teal
-          text: "#F3F4F6",
-          textMuted: "#9CA3AF",
-          danger: "#EF4444",
-          surface: "#16161F",
+          bg: 'var(--bg-canvas)',
+          card: 'var(--bg-surface)',
+          surface: 'var(--bg-subtle)',
+          border: 'var(--border-subtle)',
+          primary: 'var(--accent-time)',
+          secondary: 'var(--accent-reps)',
+          cardio: 'var(--accent-cardio)',
+          text: 'var(--text-primary)',
+          textMuted: 'var(--text-muted)',
+          danger: 'var(--accent-danger)',
         },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-      },
-      borderRadius: {
-        "4xl": "2rem",
-        "5xl": "3rem",
+        display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        sans: ['"DM Sans"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
+        card: 'var(--shadow-card)',
+        elevated: 'var(--shadow-elevated)',
       },
-      backdropBlur: {
-        xl: "20px",
-      },
-      animation: {
-        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        float: "float 6s ease-in-out infinite",
-        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
-        "gradient-shift": "gradient-shift 8s ease infinite",
-      },
-      keyframes: {
-        float: {
-          "0%, 100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-10px)" },
-        },
-        "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(245, 158, 11, 0.15)" },
-          "50%": { boxShadow: "0 0 40px rgba(245, 158, 11, 0.3)" },
-        },
-        "gradient-shift": {
-          "0%, 100%": { backgroundPosition: "0% 50%" },
-          "50%": { backgroundPosition: "100% 50%" },
-        },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.375rem',
+        '4xl': '1.75rem',
       },
     },
   },
