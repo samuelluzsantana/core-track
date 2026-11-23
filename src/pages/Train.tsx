@@ -34,6 +34,9 @@ import { AnimatedChecklist, ChecklistItem } from '../components/ui/AnimatedCheck
 import { FeedbackModal } from '../components/FeedbackModal';
 import { ExerciseAvatar } from '../components/ExerciseAvatar';
 import { ExerciseMediaModal } from '../components/ExerciseMediaModal';
+import { BorderBeam } from '../components/ui/BorderBeam';
+import { BlurFade } from '../components/ui/BlurFade';
+import { fireCelebrationConfetti, firePRConfetti } from '../utils/confetti';
 import { IMPACT_LABELS, MODALITY_LABELS, SEED_CATALOG } from '../data/seedCatalog';
 
 function playTone(freq = 660, durationMs = 140) {
@@ -382,6 +385,17 @@ export function Train() {
   const handleFeedbackSubmit = async (feedback: Feedback) => {
     if (lastSavedLog) {
       await submitWorkoutFeedback(lastSavedLog.id, feedback);
+      if (feedback === 'otimo') {
+        const beatSecondsPR =
+          pr.bestSeconds > 0 && lastSavedLog.durationSeconds > pr.bestSeconds;
+        const beatRepsPR =
+          pr.bestReps > 0 && lastSavedLog.totalReps > pr.bestReps;
+        if (beatSecondsPR || beatRepsPR) {
+          firePRConfetti();
+        } else {
+          fireCelebrationConfetti();
+        }
+      }
     }
     if (activeRoutine && routineIndex < activeRoutine.items.length - 1) {
       setRoutineIndex((i) => i + 1);
@@ -449,7 +463,7 @@ export function Train() {
       )}
 
       {/* Exercise Header Card */}
-      <div className="surface-card rounded-2xl p-4 flex items-center gap-3.5">
+      <BlurFade delay={0.02} className="surface-card rounded-2xl p-4 flex items-center gap-3.5">
         <ExerciseAvatar
           name={selectedExercise.name}
           imageUrl={selectedExercise.imageUrls[0]}
@@ -484,7 +498,7 @@ export function Train() {
             )}
           </div>
         </div>
-      </div>
+      </BlurFade>
 
       {/* Adaptive Safety Block Gate */}
       {safety.locked ? (
@@ -615,7 +629,8 @@ export function Train() {
               )}
 
               {/* Circular SVG Timer */}
-              <div className="surface-card rounded-3xl py-8 px-4 flex flex-col items-center">
+              <div className="surface-card rounded-3xl py-8 px-4 flex flex-col items-center relative overflow-hidden">
+                {timerActive && <BorderBeam duration={6} borderWidth={1.5} />}
                 <div className="relative w-60 h-60 flex items-center justify-center">
                   <svg className="absolute inset-0 w-full h-full -rotate-90">
                     <circle
@@ -959,7 +974,15 @@ export function Train() {
               )}
 
               {/* Interval Ring Card */}
-              <div className="surface-card rounded-3xl p-6 flex flex-col items-center">
+              <div className="surface-card rounded-3xl p-6 flex flex-col items-center relative overflow-hidden">
+                {intervalRunning && (
+                  <BorderBeam
+                    duration={5}
+                    borderWidth={1.5}
+                    colorFrom="var(--accent-cardio)"
+                    colorTo="var(--accent-reps)"
+                  />
+                )}
                 <div className="flex items-center gap-2 mb-4">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${

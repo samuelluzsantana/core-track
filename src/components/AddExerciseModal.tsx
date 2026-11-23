@@ -571,61 +571,85 @@ export function AddExerciseModal({
                   )}
                 </>
               ) : (
-                <form onSubmit={handleCreateCustom} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                      Nome do Exercício *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Ex: Pular Corda Boxe, Prancha com Toque..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none focus:border-modality-time"
-                    />
+                <Form
+                  onSubmit={handleCreateCustom}
+                  validationBehavior="native"
+                  className="w-full flex flex-col gap-4"
+                >
+                  <Input
+                    isRequired
+                    label="Nome do Exercício"
+                    labelPlacement="outside"
+                    placeholder="Ex: Pular Corda Boxe, Prancha com Toque..."
+                    value={customName}
+                    onValueChange={setCustomName}
+                    variant="bordered"
+                    radius="lg"
+                    classNames={{
+                      label: 'text-xs font-semibold text-ink-secondary',
+                      inputWrapper:
+                        'bg-surface border-border-token hover:border-border-strong group-data-[focus=true]:border-modality-time',
+                      input: 'text-sm text-ink placeholder:text-ink-muted',
+                    }}
+                  />
+
+                  <div className="w-full grid grid-cols-2 gap-3">
+                    <Select
+                      label="Categoria"
+                      labelPlacement="outside"
+                      selectedKeys={[customCategory]}
+                      onSelectionChange={(keys) => {
+                        const val = Array.from(keys)[0] as ExerciseCategory | undefined;
+                        if (val) setCustomCategory(val);
+                      }}
+                      variant="bordered"
+                      radius="lg"
+                      classNames={{
+                        label: 'text-xs font-semibold text-ink-secondary',
+                        trigger:
+                          'bg-surface border-border-token hover:border-border-strong',
+                        value: 'text-sm text-ink',
+                        popoverContent:
+                          'bg-surface border border-border-token text-ink',
+                      }}
+                    >
+                      <SelectItem key="core">Core &amp; Lombar</SelectItem>
+                      <SelectItem key="cardio">Cardio &amp; HIIT</SelectItem>
+                      <SelectItem key="strength">Força</SelectItem>
+                      <SelectItem key="mobility">Mobilidade</SelectItem>
+                      <SelectItem key="plyometrics">Pliometria</SelectItem>
+                    </Select>
+
+                    <Select
+                      label="Grupo Muscular"
+                      labelPlacement="outside"
+                      selectedKeys={[customMuscle]}
+                      onSelectionChange={(keys) => {
+                        const val = Array.from(keys)[0] as string | undefined;
+                        if (val) setCustomMuscle(val);
+                      }}
+                      variant="bordered"
+                      radius="lg"
+                      classNames={{
+                        label: 'text-xs font-semibold text-ink-secondary',
+                        trigger:
+                          'bg-surface border-border-token hover:border-border-strong',
+                        value: 'text-sm text-ink',
+                        popoverContent:
+                          'bg-surface border border-border-token text-ink',
+                      }}
+                    >
+                      <SelectItem key="abdominals">Abdômen</SelectItem>
+                      <SelectItem key="lower back">Lombar</SelectItem>
+                      <SelectItem key="glutes">Glúteos</SelectItem>
+                      <SelectItem key="quadriceps">Quadríceps / Pernas</SelectItem>
+                      <SelectItem key="calves">Panturrilhas</SelectItem>
+                      <SelectItem key="chest">Peitoral</SelectItem>
+                      <SelectItem key="shoulders">Ombros</SelectItem>
+                    </Select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                        Categoria
-                      </label>
-                      <select
-                        value={customCategory}
-                        onChange={(e) =>
-                          setCustomCategory(e.target.value as ExerciseCategory)
-                        }
-                        className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none"
-                      >
-                        <option value="core">Core & Lombar</option>
-                        <option value="cardio">Cardio & HIIT</option>
-                        <option value="strength">Força</option>
-                        <option value="mobility">Mobilidade</option>
-                        <option value="plyometrics">Pliometria</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                        Grupo Muscular
-                      </label>
-                      <select
-                        value={customMuscle}
-                        onChange={(e) => setCustomMuscle(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none"
-                      >
-                        <option value="abdominals">Abdômen</option>
-                        <option value="lower back">Lombar</option>
-                        <option value="glutes">Glúteos</option>
-                        <option value="quadriceps">Quadríceps / Pernas</option>
-                        <option value="calves">Panturrilhas</option>
-                        <option value="chest">Peitoral</option>
-                        <option value="shoulders">Ombros</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
+                  <div className="w-full">
                     <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
                       Modalidade de Medição
                     </label>
@@ -654,129 +678,170 @@ export function AddExerciseModal({
                   </div>
 
                   {/* Modality-specific default goals */}
-                  <div className="surface-card p-3.5 rounded-2xl">
+                  <div className="w-full surface-card p-3.5 rounded-2xl">
                     {customMeasurement === 'time_based' && (
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-xs font-medium text-ink-secondary">
                           Meta inicial (segundos)
                         </span>
-                        <input
+                        <Input
                           type="number"
+                          aria-label="Meta inicial em segundos"
                           min={10}
                           max={3600}
-                          value={customTargetSec}
-                          onChange={(e) => setCustomTargetSec(Number(e.target.value) || 30)}
-                          className="w-24 px-3 py-1.5 rounded-lg bg-subtle border border-border-token text-sm font-mono tabular-nums text-right text-ink"
+                          value={String(customTargetSec)}
+                          onValueChange={(v) => setCustomTargetSec(Number(v) || 30)}
+                          variant="bordered"
+                          size="sm"
+                          radius="md"
+                          className="w-28"
+                          classNames={{
+                            inputWrapper: 'bg-subtle border-border-token',
+                            input: 'text-sm font-mono tabular-nums text-right text-ink',
+                          }}
                         />
                       </div>
                     )}
                     {customMeasurement === 'reps_based' && (
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[11px] text-ink-muted block mb-1">
-                            Séries padrão
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={12}
-                            value={customSets}
-                            onChange={(e) => setCustomSets(Number(e.target.value) || 3)}
-                            className="w-full px-3 py-1.5 rounded-lg bg-subtle border border-border-token text-sm font-mono tabular-nums text-ink"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] text-ink-muted block mb-1">
-                            Repetições padrão
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={200}
-                            value={customReps}
-                            onChange={(e) => setCustomReps(Number(e.target.value) || 10)}
-                            className="w-full px-3 py-1.5 rounded-lg bg-subtle border border-border-token text-sm font-mono tabular-nums text-ink"
-                          />
-                        </div>
+                        <Input
+                          type="number"
+                          label="Séries padrão"
+                          labelPlacement="outside"
+                          min={1}
+                          max={12}
+                          value={String(customSets)}
+                          onValueChange={(v) => setCustomSets(Number(v) || 3)}
+                          variant="bordered"
+                          size="sm"
+                          radius="md"
+                          classNames={{
+                            label: 'text-[11px] text-ink-muted',
+                            inputWrapper: 'bg-subtle border-border-token',
+                            input: 'text-sm font-mono tabular-nums text-ink',
+                          }}
+                        />
+                        <Input
+                          type="number"
+                          label="Repetições padrão"
+                          labelPlacement="outside"
+                          min={1}
+                          max={200}
+                          value={String(customReps)}
+                          onValueChange={(v) => setCustomReps(Number(v) || 10)}
+                          variant="bordered"
+                          size="sm"
+                          radius="md"
+                          classNames={{
+                            label: 'text-[11px] text-ink-muted',
+                            inputWrapper: 'bg-subtle border-border-token',
+                            input: 'text-sm font-mono tabular-nums text-ink',
+                          }}
+                        />
                       </div>
                     )}
                     {customMeasurement === 'interval_based' && (
                       <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="text-[11px] text-ink-muted block mb-1">
-                            Rounds
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={30}
-                            value={customRounds}
-                            onChange={(e) => setCustomRounds(Number(e.target.value) || 4)}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-subtle border border-border-token text-sm font-mono tabular-nums text-ink"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] text-ink-muted block mb-1">
-                            Ação (s)
-                          </label>
-                          <input
-                            type="number"
-                            min={5}
-                            max={300}
-                            value={customWorkSec}
-                            onChange={(e) => setCustomWorkSec(Number(e.target.value) || 30)}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-subtle border border-border-token text-sm font-mono tabular-nums text-ink"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] text-ink-muted block mb-1">
-                            Descanso (s)
-                          </label>
-                          <input
-                            type="number"
-                            min={5}
-                            max={180}
-                            value={customRestSec}
-                            onChange={(e) => setCustomRestSec(Number(e.target.value) || 15)}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-subtle border border-border-token text-sm font-mono tabular-nums text-ink"
-                          />
-                        </div>
+                        <Input
+                          type="number"
+                          label="Rounds"
+                          labelPlacement="outside"
+                          min={1}
+                          max={30}
+                          value={String(customRounds)}
+                          onValueChange={(v) => setCustomRounds(Number(v) || 4)}
+                          variant="bordered"
+                          size="sm"
+                          radius="md"
+                          classNames={{
+                            label: 'text-[11px] text-ink-muted',
+                            inputWrapper: 'bg-subtle border-border-token',
+                            input: 'text-sm font-mono tabular-nums text-ink',
+                          }}
+                        />
+                        <Input
+                          type="number"
+                          label="Ação (s)"
+                          labelPlacement="outside"
+                          min={5}
+                          max={300}
+                          value={String(customWorkSec)}
+                          onValueChange={(v) => setCustomWorkSec(Number(v) || 30)}
+                          variant="bordered"
+                          size="sm"
+                          radius="md"
+                          classNames={{
+                            label: 'text-[11px] text-ink-muted',
+                            inputWrapper: 'bg-subtle border-border-token',
+                            input: 'text-sm font-mono tabular-nums text-ink',
+                          }}
+                        />
+                        <Input
+                          type="number"
+                          label="Descanso (s)"
+                          labelPlacement="outside"
+                          min={5}
+                          max={180}
+                          value={String(customRestSec)}
+                          onValueChange={(v) => setCustomRestSec(Number(v) || 15)}
+                          variant="bordered"
+                          size="sm"
+                          radius="md"
+                          classNames={{
+                            label: 'text-[11px] text-ink-muted',
+                            inputWrapper: 'bg-subtle border-border-token',
+                            input: 'text-sm font-mono tabular-nums text-ink',
+                          }}
+                        />
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                        Impacto Articular
-                      </label>
-                      <select
-                        value={customImpact}
-                        onChange={(e) => setCustomImpact(e.target.value as ImpactLevel)}
-                        className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none"
-                      >
-                        <option value="mobility">Mobilidade</option>
-                        <option value="low">Baixo Impacto</option>
-                        <option value="medium">Médio Impacto</option>
-                        <option value="high">Alto Impacto</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                        Equipamento
-                      </label>
-                      <input
-                        type="text"
-                        value={customEquipment}
-                        onChange={(e) => setCustomEquipment(e.target.value)}
-                        placeholder="body only, jump rope..."
-                        className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none"
-                      />
-                    </div>
+                  <div className="w-full grid grid-cols-2 gap-3">
+                    <Select
+                      label="Impacto Articular"
+                      labelPlacement="outside"
+                      selectedKeys={[customImpact]}
+                      onSelectionChange={(keys) => {
+                        const val = Array.from(keys)[0] as ImpactLevel | undefined;
+                        if (val) setCustomImpact(val);
+                      }}
+                      variant="bordered"
+                      radius="lg"
+                      classNames={{
+                        label: 'text-xs font-semibold text-ink-secondary',
+                        trigger:
+                          'bg-surface border-border-token hover:border-border-strong',
+                        value: 'text-sm text-ink',
+                        popoverContent:
+                          'bg-surface border border-border-token text-ink',
+                      }}
+                    >
+                      <SelectItem key="mobility">Mobilidade</SelectItem>
+                      <SelectItem key="low">Baixo Impacto</SelectItem>
+                      <SelectItem key="medium">Médio Impacto</SelectItem>
+                      <SelectItem key="high">Alto Impacto</SelectItem>
+                    </Select>
+
+                    <Input
+                      label="Equipamento"
+                      labelPlacement="outside"
+                      value={customEquipment}
+                      onValueChange={setCustomEquipment}
+                      placeholder="body only, jump rope..."
+                      variant="bordered"
+                      radius="lg"
+                      classNames={{
+                        label: 'text-xs font-semibold text-ink-secondary',
+                        inputWrapper:
+                          'bg-surface border-border-token hover:border-border-strong',
+                        input: 'text-sm text-ink placeholder:text-ink-muted',
+                      }}
+                    />
                   </div>
 
                   {/* Icon & Color pickers */}
-                  <div>
+                  <div className="w-full">
                     <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
                       Ícone & Cor Temática
                     </label>
@@ -819,32 +884,37 @@ export function AddExerciseModal({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-ink-secondary block mb-1.5">
-                      Instruções (opcional, uma por linha)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={customInstructions}
-                      onChange={(e) => setCustomInstructions(e.target.value)}
-                      placeholder="1. Postura inicial...&#10;2. Execução controlada..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-border-token text-sm text-ink outline-none"
-                    />
-                  </div>
+                  <Textarea
+                    label="Instruções (opcional, uma por linha)"
+                    labelPlacement="outside"
+                    minRows={3}
+                    value={customInstructions}
+                    onValueChange={setCustomInstructions}
+                    placeholder="1. Postura inicial...&#10;2. Execução controlada..."
+                    variant="bordered"
+                    radius="lg"
+                    classNames={{
+                      label: 'text-xs font-semibold text-ink-secondary',
+                      inputWrapper:
+                        'bg-surface border-border-token hover:border-border-strong',
+                      input: 'text-sm text-ink placeholder:text-ink-muted',
+                    }}
+                  />
 
-                  <button
+                  <Button
                     type="submit"
-                    disabled={savingCustom || !customName.trim()}
-                    className="w-full py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                    color="primary"
+                    radius="lg"
+                    size="lg"
+                    fullWidth
+                    isLoading={savingCustom}
+                    isDisabled={!customName.trim()}
+                    startContent={!savingCustom ? <Check className="w-4 h-4" /> : undefined}
+                    className="font-bold text-sm shadow-sm mt-1"
                   >
-                    {savingCustom ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Check className="w-4 h-4" />
-                    )}
                     Salvar Exercício Customizado
-                  </button>
-                </form>
+                  </Button>
+                </Form>
               )}
             </div>
           </motion.div>

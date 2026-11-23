@@ -13,6 +13,11 @@ import {
   Check,
 } from 'lucide-react';
 import { useAppData } from '../contexts/AppDataContext';
+import { DotPattern } from '../components/ui/DotPattern';
+import { GlassBadge } from '../components/ui/GlassIcons';
+import { BlurText } from '../components/ui/BlurText';
+import { ShimmerButton } from '../components/ui/ShimmerButton';
+import { fireCelebrationConfetti } from '../utils/confetti';
 import { ExperienceLevel, Objective, PainLevel } from '../types';
 
 export function Onboarding() {
@@ -40,6 +45,7 @@ export function Onboarding() {
         experienceLevel: experience,
         onboardingCompleted: true,
       });
+      fireCelebrationConfetti();
       navigate('/');
     } catch (err: unknown) {
       const msg =
@@ -60,8 +66,9 @@ export function Onboarding() {
         : 'text-modality-danger';
 
   return (
-    <div className="min-h-screen bg-canvas text-ink flex justify-center w-full sm:py-4">
-      <div className="w-full max-w-[460px] min-h-screen sm:min-h-[calc(100vh-2rem)] flex flex-col bg-canvas sm:rounded-[28px] sm:border sm:border-border-token sm:shadow-elevated overflow-hidden relative">
+    <div className="min-h-screen bg-canvas text-ink flex justify-center w-full sm:py-4 relative overflow-hidden">
+      <DotPattern width={24} height={24} className="opacity-60" />
+      <div className="w-full max-w-[460px] min-h-screen sm:min-h-[calc(100vh-2rem)] flex flex-col bg-canvas sm:rounded-[28px] sm:border sm:border-border-token sm:shadow-elevated overflow-hidden relative z-10">
         {/* Progress Steps */}
         <div className="px-6 pt-10 pb-5 flex gap-2">
           {[1, 2, 3].map((i) => (
@@ -84,12 +91,14 @@ export function Onboarding() {
                 exit={{ opacity: 0, x: -16 }}
                 className="space-y-6"
               >
-                <div className="w-12 h-12 rounded-2xl bg-modality-time-soft border border-modality-time-border flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-modality-time" />
-                </div>
+                <GlassBadge
+                  size="md"
+                  tone="amber"
+                  icon={<Activity className="w-5 h-5" />}
+                />
                 <div>
                   <h1 className="text-2xl font-display font-extrabold text-ink">
-                    Qual seu nível de dor lombar hoje?
+                    <BlurText text="Qual seu nível de dor lombar hoje?" />
                   </h1>
                   <p className="text-sm text-ink-muted mt-1.5">
                     O Motor Adaptativo calibra suas metas e bloqueia alto impacto automaticamente se necessário.
@@ -137,12 +146,14 @@ export function Onboarding() {
                 exit={{ opacity: 0, x: -16 }}
                 className="space-y-6"
               >
-                <div className="w-12 h-12 rounded-2xl bg-modality-reps-soft border border-modality-reps-border flex items-center justify-center">
-                  <Target className="w-6 h-6 text-modality-reps" />
-                </div>
+                <GlassBadge
+                  size="md"
+                  tone="teal"
+                  icon={<Target className="w-5 h-5" />}
+                />
                 <div>
                   <h1 className="text-2xl font-display font-extrabold text-ink">
-                    Qual seu foco principal?
+                    <BlurText text="Qual seu foco principal?" />
                   </h1>
                   <p className="text-sm text-ink-muted mt-1.5">
                     Personalizamos suas rotinas híbridas de core, força e condicionamento.
@@ -223,12 +234,14 @@ export function Onboarding() {
                 exit={{ opacity: 0, x: -16 }}
                 className="space-y-6"
               >
-                <div className="w-12 h-12 rounded-2xl bg-modality-cardio-soft border border-modality-cardio-border flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-modality-cardio" />
-                </div>
+                <GlassBadge
+                  size="md"
+                  tone="indigo"
+                  icon={<Zap className="w-5 h-5" />}
+                />
                 <div>
                   <h1 className="text-2xl font-display font-extrabold text-ink">
-                    Qual sua experiência atual?
+                    <BlurText text="Qual sua experiência atual?" />
                   </h1>
                   <p className="text-sm text-ink-muted mt-1.5">
                     Define o ritmo de incremento automático das metas.
@@ -324,21 +337,32 @@ export function Onboarding() {
                 Voltar
               </button>
             )}
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleNext}
-              className="flex-1 py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <span>{step === 3 ? 'Começar Treinos' : 'Continuar'}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+            {step === 3 ? (
+              <ShimmerButton
+                disabled={saving}
+                onClick={handleNext}
+                className="flex-1 py-3.5 rounded-xl bg-modality-time text-white text-sm shadow-sm"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Começar Treinos</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </ShimmerButton>
+            ) : (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleNext}
+                className="flex-1 py-3.5 rounded-xl bg-modality-time text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+              >
+                <span>Continuar</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

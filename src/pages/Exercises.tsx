@@ -274,7 +274,7 @@ export function Exercises() {
                 ).locked
               );
               return (
-                <div key={r.id} className="surface-card rounded-2xl p-4 space-y-3">
+                <MagicCard key={r.id} className="rounded-2xl p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="font-display font-bold text-base text-ink">
@@ -315,7 +315,7 @@ export function Exercises() {
                     <Play className="w-3.5 h-3.5 fill-current" />
                     Iniciar Rotina ({r.items.length} exercícios)
                   </button>
-                </div>
+                </MagicCard>
               );
             })}
           </div>

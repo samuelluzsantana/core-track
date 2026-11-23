@@ -359,19 +359,18 @@ export function Settings() {
           </div>
 
           {!isInstalled && canPrompt && (
-            <button
-              type="button"
+            <ShimmerButton
               onClick={async () => {
                 const outcome = await promptInstall();
                 if (outcome === 'accepted') {
                   showToast('Aplicativo instalado!');
                 }
               }}
-              className="w-full py-2.5 px-4 rounded-xl bg-modality-time text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm hover:opacity-95 transition-opacity"
+              className="w-full py-2.5 px-4 rounded-xl bg-modality-time text-white text-xs shadow-sm"
             >
               <Download className="w-4 h-4" />
               Adicionar Aplicativo Web
-            </button>
+            </ShimmerButton>
           )}
 
           {!isInstalled && !canPrompt && (
@@ -490,25 +489,28 @@ export function Settings() {
                   {confirming.message}
                 </p>
                 <div className="flex gap-2.5">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setConfirming(null)}
-                    className="flex-1 py-2.5 rounded-xl bg-subtle text-ink-secondary font-semibold text-xs"
+                    variant="flat"
+                    radius="lg"
+                    onPress={() => setConfirming(null)}
+                    className="flex-1 bg-subtle text-ink-secondary font-semibold text-xs"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={async () => {
+                    radius="lg"
+                    onPress={async () => {
                       await confirming.onConfirm();
                       setConfirming(null);
                     }}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs text-white ${
+                    className={`flex-1 font-bold text-xs text-white ${
                       confirming.danger ? 'bg-modality-danger' : 'bg-modality-cardio'
                     }`}
                   >
                     {confirming.label}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>

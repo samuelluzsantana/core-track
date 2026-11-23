@@ -13,7 +13,6 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts';
-import { motion } from 'framer-motion';
 import {
   Flame,
   Trophy,
@@ -22,6 +21,7 @@ import {
   TrendingUp,
   Calendar,
 } from 'lucide-react';
+import { Tabs, Tab } from '@heroui/tabs';
 import { useAppData } from '../contexts/AppDataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -31,6 +31,11 @@ import {
   getVolumeSummary,
 } from '../utils/ipcAlgorithm';
 import { NumberTicker } from '../components/ui/NumberTicker';
+import { SpotlightCard } from '../components/ui/SpotlightCard';
+import { MagicCard } from '../components/ui/MagicCard';
+import { BorderBeam } from '../components/ui/BorderBeam';
+import { BlurFade } from '../components/ui/BlurFade';
+import { DotPattern } from '../components/ui/DotPattern';
 import { MODALITY_LABELS } from '../data/seedCatalog';
 
 type ChartMetric = 'active_min' | 'plank_sec' | 'reps' | 'cardio_min';
@@ -138,8 +143,10 @@ export function Progress() {
   const streak = profile?.currentStreak ?? 0;
 
   return (
-    <div className="px-5 pt-7 pb-8 space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="px-5 pt-7 pb-8 space-y-5 relative">
+      <DotPattern width={22} height={22} className="h-56 opacity-45" />
+
+      <BlurFade delay={0.02} className="relative z-10 flex items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight">
             Analytics Híbrido
@@ -149,70 +156,75 @@ export function Progress() {
           </p>
         </div>
 
-        {/* Period Switch */}
-        <div className="flex p-1 rounded-xl bg-subtle border border-border-token">
-          {(
-            [
-              { id: 'week', label: '7d' },
-              { id: 'month', label: '30d' },
-            ] as const
-          ).map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPeriod(p.id)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                period === p.id
-                  ? 'bg-surface text-ink shadow-sm'
-                  : 'text-ink-muted'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* HeroUI Period Switch */}
+        <Tabs
+          aria-label="Período de análise"
+          selectedKey={period}
+          onSelectionChange={(key) => setPeriod(key as 'week' | 'month')}
+          size="sm"
+          radius="lg"
+          classNames={{
+            tabList: 'bg-subtle p-1 border border-border-token',
+            cursor: 'bg-surface shadow-sm',
+            tab: 'px-3 h-7 text-xs font-bold',
+            tabContent: 'group-data-[selected=true]:text-ink text-ink-muted',
+          }}
+        >
+          <Tab key="week" title="7d" />
+          <Tab key="month" title="30d" />
+        </Tabs>
+      </BlurFade>
 
-      {/* Top KPI Cards */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className="surface-card rounded-2xl p-3 text-center">
+      {/* Top KPI SpotlightCards */}
+      <BlurFade delay={0.06} className="relative z-10 grid grid-cols-4 gap-2">
+        <SpotlightCard
+          spotlightColor="rgba(234, 88, 12, 0.12)"
+          className="rounded-2xl p-3 text-center"
+        >
           <Flame className="w-4 h-4 text-modality-time mx-auto mb-1" />
           <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
             <NumberTicker value={streak} />
           </div>
           <div className="text-[10px] font-semibold text-ink-muted">Streak</div>
-        </div>
-        <div className="surface-card rounded-2xl p-3 text-center">
+        </SpotlightCard>
+        <SpotlightCard
+          spotlightColor="rgba(79, 70, 229, 0.12)"
+          className="rounded-2xl p-3 text-center"
+        >
           <Clock className="w-4 h-4 text-modality-cardio mx-auto mb-1" />
           <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
             <NumberTicker value={volume.totalActiveMinutes} />
             <span className="text-[10px] font-normal text-ink-muted">m</span>
           </div>
           <div className="text-[10px] font-semibold text-ink-muted">Ativo</div>
-        </div>
-        <div className="surface-card rounded-2xl p-3 text-center">
+        </SpotlightCard>
+        <SpotlightCard
+          spotlightColor="rgba(13, 148, 136, 0.12)"
+          className="rounded-2xl p-3 text-center"
+        >
           <Activity className="w-4 h-4 text-modality-reps mx-auto mb-1" />
           <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
             <NumberTicker value={volume.totalReps} />
           </div>
           <div className="text-[10px] font-semibold text-ink-muted">Reps</div>
-        </div>
-        <div className="surface-card rounded-2xl p-3 text-center">
+        </SpotlightCard>
+        <SpotlightCard
+          spotlightColor="rgba(234, 88, 12, 0.12)"
+          className="rounded-2xl p-3 text-center"
+        >
           <Trophy className="w-4 h-4 text-modality-time mx-auto mb-1" />
           <div className="text-lg font-mono font-extrabold text-ink tabular-nums">
             {plankPR}
             <span className="text-[10px] font-normal text-ink-muted">s</span>
           </div>
           <div className="text-[10px] font-semibold text-ink-muted">PR Prancha</div>
-        </div>
-      </div>
+        </SpotlightCard>
+      </BlurFade>
 
-      {/* Unified Trend Chart (Ref Image 3 & 5) */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="surface-card rounded-2xl p-4 space-y-4"
-      >
+      {/* Unified Trend Chart com MagicCard + BorderBeam */}
+      <BlurFade delay={0.1} className="relative z-10">
+        <MagicCard className="rounded-2xl p-4 space-y-4">
+          <BorderBeam duration={9} borderWidth={1.25} />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-modality-cardio" />
@@ -311,7 +323,8 @@ export function Progress() {
             </button>
           ))}
         </div>
-      </motion.div>
+        </MagicCard>
+      </BlurFade>
 
       {/* Consistency Heatmap (GitHub style, 35 days) */}
       <div className="surface-card rounded-2xl p-4 space-y-3">

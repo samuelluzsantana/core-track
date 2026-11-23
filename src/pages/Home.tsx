@@ -26,6 +26,15 @@ import {
   getVolumeSummary,
 } from '../utils/ipcAlgorithm';
 import { NumberTicker } from '../components/ui/NumberTicker';
+import { DotPattern } from '../components/ui/DotPattern';
+import { BlurFade } from '../components/ui/BlurFade';
+import { BlurText } from '../components/ui/BlurText';
+import { GlassBadge } from '../components/ui/GlassIcons';
+import { SpotlightCard } from '../components/ui/SpotlightCard';
+import { MagicCard } from '../components/ui/MagicCard';
+import { BorderBeam } from '../components/ui/BorderBeam';
+import { AnimatedCircularProgressBar } from '../components/ui/AnimatedCircularProgressBar';
+import { ShimmerButton } from '../components/ui/ShimmerButton';
 import { ExerciseAvatar } from '../components/ExerciseAvatar';
 import { ExerciseMediaModal } from '../components/ExerciseMediaModal';
 import { SEED_CATALOG } from '../data/seedCatalog';
@@ -40,11 +49,6 @@ function IPCRing({
   accentToken: 'danger' | 'amber' | 'teal' | 'emerald' | 'indigo';
   size?: number;
 }) {
-  const strokeWidth = 8;
-  const radius = (size - strokeWidth * 2) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const center = size / 2;
-
   const strokeColor =
     accentToken === 'danger'
       ? 'var(--accent-danger)'
@@ -55,41 +59,19 @@ function IPCRing({
           : 'var(--accent-reps)';
 
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke="var(--ring-track)"
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <motion.circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeLinecap="round"
-          initial={{ strokeDashoffset: circumference }}
-          animate={{
-            strokeDashoffset: circumference - (percentage / 100) * circumference,
-          }}
-          transition={{ duration: 1.1, ease: 'easeOut' }}
-          style={{ strokeDasharray: circumference }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-display font-extrabold text-ink tabular-nums">
-          {percentage}%
-        </span>
-        <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">
-          IPC
-        </span>
-      </div>
-    </div>
+    <AnimatedCircularProgressBar
+      value={percentage}
+      size={size}
+      strokeWidth={8}
+      gaugePrimaryColor={strokeColor}
+    >
+      <span className="text-xl font-display font-extrabold text-ink tabular-nums">
+        <NumberTicker value={percentage} />%
+      </span>
+      <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">
+        IPC
+      </span>
+    </AnimatedCircularProgressBar>
   );
 }
 
@@ -157,20 +139,19 @@ export default function Home() {
   };
 
   return (
-    <div className="px-5 pt-7 pb-8 space-y-6">
+    <div className="px-5 pt-7 pb-8 space-y-6 relative">
+      <DotPattern width={22} height={22} className="h-64 opacity-50" />
+
       {/* 1. Header: Saudação + Streak + Seletor rápido de Tema */}
-      <motion.header
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between gap-3"
-      >
+      <BlurFade delay={0.02} className="relative z-10 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-modality-time">
             CoreTrack Hybrid
           </p>
-          <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight truncate">
-            {getGreeting()}
-            {profile?.displayName ? `, ${profile.displayName.split(' ')[0]}` : ''}!
+          <h1 className="text-2xl font-display font-extrabold text-ink tracking-tight">
+            <BlurText
+              text={`${getGreeting()}${profile?.displayName ? `, ${profile.displayName.split(' ')[0]}` : ''}!`}
+            />
           </h1>
         </div>
 
@@ -195,7 +176,7 @@ export default function Home() {
           </button>
 
           {/* Streak Pill */}
-          <div className="px-3 py-1.5 rounded-xl bg-modality-time-soft border border-modality-time-border flex items-center gap-1.5">
+          <div className="px-3 py-1.5 rounded-xl bg-modality-time-soft border border-modality-time-border flex items-center gap-1.5 shadow-sm">
             <Flame className="w-4 h-4 text-modality-time" />
             <div className="leading-none">
               <span className="text-sm font-display font-extrabold text-ink tabular-nums">
@@ -207,14 +188,14 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </motion.header>
+      </BlurFade>
 
       {/* Safety Alert when High Impact is Locked */}
       {ipc.highImpactBlocked && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-3.5 rounded-2xl bg-modality-danger-soft border border-modality-danger-border flex items-start gap-3"
+          className="relative z-10 p-3.5 rounded-2xl bg-modality-danger-soft border border-modality-danger-border flex items-start gap-3"
         >
           <AlertTriangle className="w-4 h-4 text-modality-danger shrink-0 mt-0.5" />
           <div className="text-xs text-ink-secondary leading-relaxed">
@@ -227,12 +208,7 @@ export default function Home() {
       )}
 
       {/* 2. Seção "Seu Treino de Hoje" */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="space-y-3"
-      >
+      <BlurFade delay={0.07} className="relative z-10 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
             Seu Treino de Hoje
@@ -246,91 +222,113 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Quick Actions Grid: Prancha (Time) & Pular Corda / Mobilidade (Cardio or Safety Swap) */}
+        {/* Quick Actions Grid com React Bits GlassBadge & SpotlightCard */}
         <div className="grid grid-cols-2 gap-3">
           {/* Prancha Card (Laranja - Isometria/Tempo) */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            type="button"
-            onClick={() => navigate(`/train?exerciseId=${plankEx.id}`)}
-            className="surface-card rounded-2xl p-4 text-left hover:border-modality-time-border transition-all flex flex-col justify-between gap-3"
+          <SpotlightCard
+            spotlightColor="rgba(234, 88, 12, 0.11)"
+            className="rounded-2xl hover:border-modality-time-border transition-colors"
           >
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-xl bg-modality-time-soft border border-modality-time-border flex items-center justify-center">
-                <Timer className="w-4 h-4 text-modality-time" />
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => navigate(`/train?exerciseId=${plankEx.id}`)}
+              className="w-full p-4 text-left flex flex-col justify-between gap-3.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <GlassBadge
+                  size="sm"
+                  tone="amber"
+                  icon={<Timer className="w-4 h-4" />}
+                />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-modality-time-soft text-modality-time border border-modality-time-border/60 tabular-nums">
+                  Meta {formatDurationShort(plankTarget)}
+                </span>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-modality-time-soft text-modality-time tabular-nums">
-                Meta {formatDurationShort(plankTarget)}
-              </span>
-            </div>
-            <div>
-              <div className="font-display font-bold text-sm text-ink">
-                Prancha Diária
+              <div>
+                <div className="font-display font-bold text-sm text-ink">
+                  Prancha Diária
+                </div>
+                <div className="text-[11px] text-ink-muted mt-0.5 tabular-nums">
+                  {plankPR > 0
+                    ? `Recorde: ${formatDurationShort(plankPR)}`
+                    : 'Isometria adaptativa'}
+                </div>
               </div>
-              <div className="text-[11px] text-ink-muted mt-0.5 tabular-nums">
-                {plankPR > 0
-                  ? `Recorde: ${formatDurationShort(plankPR)}`
-                  : 'Isometria adaptativa'}
-              </div>
-            </div>
-          </motion.button>
+            </motion.button>
+          </SpotlightCard>
 
           {/* Pular Corda Card (Índigo - Cardio/HIIT) OR Mobilidade Segura */}
           {ropeSafety.locked ? (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={() => navigate(`/train?exerciseId=${mobilityEx.id}`)}
-              className="surface-card rounded-2xl p-4 text-left border-modality-mobility-border transition-all flex flex-col justify-between gap-3"
+            <SpotlightCard
+              spotlightColor="rgba(21, 128, 61, 0.11)"
+              className="rounded-2xl border-modality-mobility-border transition-colors"
             >
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-xl bg-modality-mobility-soft border border-modality-mobility-border flex items-center justify-center">
-                  <ShieldCheck className="w-4 h-4 text-modality-mobility" />
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => navigate(`/train?exerciseId=${mobilityEx.id}`)}
+                className="w-full p-4 text-left flex flex-col justify-between gap-3.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <GlassBadge
+                    size="sm"
+                    tone="emerald"
+                    icon={<ShieldCheck className="w-4 h-4" />}
+                  />
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-modality-danger-soft text-modality-danger flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Corda
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-modality-danger-soft text-modality-danger flex items-center gap-1">
-                  <Lock className="w-2.5 h-2.5" /> Corda
-                </span>
-              </div>
-              <div>
-                <div className="font-display font-bold text-sm text-ink">
-                  {mobilityEx.name.split(' ')[0]} Segura
+                <div>
+                  <div className="font-display font-bold text-sm text-ink">
+                    {mobilityEx.name.split(' ')[0]} Segura
+                  </div>
+                  <div className="text-[11px] text-modality-mobility font-medium mt-0.5">
+                    Mobilidade recomendada
+                  </div>
                 </div>
-                <div className="text-[11px] text-modality-mobility font-medium mt-0.5">
-                  Mobilidade recomendada
-                </div>
-              </div>
-            </motion.button>
+              </motion.button>
+            </SpotlightCard>
           ) : (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={() => navigate(`/train?exerciseId=${ropeEx.id}`)}
-              className="surface-card rounded-2xl p-4 text-left hover:border-modality-cardio-border transition-all flex flex-col justify-between gap-3"
+            <SpotlightCard
+              spotlightColor="rgba(79, 70, 229, 0.11)"
+              className="rounded-2xl hover:border-modality-cardio-border transition-colors"
             >
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-xl bg-modality-cardio-soft border border-modality-cardio-border flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-modality-cardio" />
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => navigate(`/train?exerciseId=${ropeEx.id}`)}
+                className="w-full p-4 text-left flex flex-col justify-between gap-3.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <GlassBadge
+                    size="sm"
+                    tone="indigo"
+                    icon={<Zap className="w-4 h-4" />}
+                  />
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-modality-cardio-soft text-modality-cardio border border-modality-cardio-border/60 tabular-nums">
+                    {ropeEx.defaultConfig.rounds || 6} rounds
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-modality-cardio-soft text-modality-cardio tabular-nums">
-                  {ropeEx.defaultConfig.rounds || 6} rounds
-                </span>
-              </div>
-              <div>
-                <div className="font-display font-bold text-sm text-ink">
-                  Pular Corda
+                <div>
+                  <div className="font-display font-bold text-sm text-ink">
+                    Pular Corda
+                  </div>
+                  <div className="text-[11px] text-ink-muted mt-0.5 tabular-nums">
+                    HIIT {ropeEx.defaultConfig.workSeconds || 40}s /{' '}
+                    {ropeEx.defaultConfig.restSeconds || 20}s
+                  </div>
                 </div>
-                <div className="text-[11px] text-ink-muted mt-0.5 tabular-nums">
-                  HIIT {ropeEx.defaultConfig.workSeconds || 40}s /{' '}
-                  {ropeEx.defaultConfig.restSeconds || 20}s
-                </div>
-              </div>
-            </motion.button>
+              </motion.button>
+            </SpotlightCard>
           )}
         </div>
 
-        {/* Featured Routine Card (Ref Image 2 style) */}
+        {/* Featured Routine Card com MagicCard + BorderBeam + ShimmerButton */}
         {featuredRoutine && (
-          <div className="surface-card rounded-2xl p-4 space-y-3">
+          <MagicCard className="rounded-2xl p-4 space-y-3">
+            <BorderBeam duration={8} borderWidth={1.5} />
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <ExerciseAvatar
@@ -372,130 +370,126 @@ export default function Home() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
+              <ShimmerButton
                 onClick={() => navigate(`/train?routineId=${featuredRoutine.id}`)}
-                className="py-2.5 px-3 rounded-xl bg-modality-cardio text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                className="py-2.5 px-3 rounded-xl bg-modality-cardio text-white text-xs shadow-sm"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 Iniciar Rotina
-              </button>
+              </ShimmerButton>
               <button
                 type="button"
                 onClick={() => navigate('/exercises')}
-                className="py-2.5 px-3 rounded-xl bg-subtle text-ink-secondary font-semibold text-xs flex items-center justify-center gap-1.5 border border-border-token hover:text-ink"
+                className="py-2.5 px-3 rounded-xl bg-subtle text-ink-secondary font-semibold text-xs flex items-center justify-center gap-1.5 border border-border-token hover:text-ink transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Explorar / Criar
               </button>
             </div>
-          </div>
+          </MagicCard>
         )}
-      </motion.section>
+      </BlurFade>
 
-      {/* 3. "Resumo da Semana" com barras de progresso visuais */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="surface-card rounded-2xl p-4 space-y-4"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
-            Resumo da Semana
-          </h2>
+      {/* 3. "Resumo da Semana" com MagicCard + barras de progresso visuais */}
+      <BlurFade delay={0.12} className="relative z-10">
+        <MagicCard className="rounded-2xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+              Resumo da Semana
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate('/progress')}
+              className="text-xs font-semibold text-modality-reps"
+            >
+              Ver métricas
+            </button>
+          </div>
+
+          <div className="space-y-3.5">
+            {/* Active Minutes Progress */}
+            <div>
+              <div className="flex justify-between items-baseline text-xs mb-1.5">
+                <span className="font-semibold text-ink-secondary flex items-center gap-1.5">
+                  <Timer className="w-3.5 h-3.5 text-modality-time" />
+                  Minutos Ativos
+                </span>
+                <span className="font-mono font-bold text-ink tabular-nums">
+                  <NumberTicker value={weekVol.totalActiveMinutes} />{' '}
+                  <span className="text-ink-muted font-normal">/ {weeklyGoalMin} min</span>
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-subtle overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${minutesPct}%` }}
+                  transition={{ duration: 0.8 }}
+                  className="h-full rounded-full bg-modality-time"
+                />
+              </div>
+            </div>
+
+            {/* Reps & Jumps Progress */}
+            <div>
+              <div className="flex justify-between items-baseline text-xs mb-1.5">
+                <span className="font-semibold text-ink-secondary flex items-center gap-1.5">
+                  <Dumbbell className="w-3.5 h-3.5 text-modality-reps" />
+                  Repetições &amp; Saltos
+                </span>
+                <span className="font-mono font-bold text-ink tabular-nums">
+                  <NumberTicker value={weekVol.totalReps} />{' '}
+                  <span className="text-ink-muted font-normal">/ {repsGoal}</span>
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-subtle overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${repsPct}%` }}
+                  transition={{ duration: 0.8, delay: 0.1 }}
+                  className="h-full rounded-full bg-modality-reps"
+                />
+              </div>
+            </div>
+
+            {/* Sessions Progress */}
+            <div>
+              <div className="flex justify-between items-baseline text-xs mb-1.5">
+                <span className="font-semibold text-ink-secondary flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-modality-cardio" />
+                  Sessões na Semana
+                </span>
+                <span className="font-mono font-bold text-ink tabular-nums">
+                  <NumberTicker value={weekVol.totalSessions} />{' '}
+                  <span className="text-ink-muted font-normal">/ {sessionsGoal}</span>
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-subtle overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${sessionsPct}%` }}
+                  transition={{ duration: 0.8, delay: 0.15 }}
+                  className="h-full rounded-full bg-modality-cardio"
+                />
+              </div>
+            </div>
+          </div>
+        </MagicCard>
+      </BlurFade>
+
+      {/* 4. "Prontidão & Adaptação" com SpotlightCard + AnimatedCircularProgressBar */}
+      <BlurFade delay={0.16} className="relative z-10">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-2.5">
+          Prontidão &amp; Adaptação
+        </h2>
+        <SpotlightCard
+          spotlightColor="rgba(13, 148, 136, 0.10)"
+          className="rounded-2xl hover:border-border-strong transition-colors"
+        >
           <button
             type="button"
-            onClick={() => navigate('/progress')}
-            className="text-xs font-semibold text-modality-reps"
+            onClick={() => navigate('/settings')}
+            className="w-full p-4 flex items-center gap-4 text-left"
           >
-            Ver métricas
-          </button>
-        </div>
-
-        <div className="space-y-3.5">
-          {/* Active Minutes Progress */}
-          <div>
-            <div className="flex justify-between items-baseline text-xs mb-1.5">
-              <span className="font-semibold text-ink-secondary flex items-center gap-1.5">
-                <Timer className="w-3.5 h-3.5 text-modality-time" />
-                Minutos Ativos
-              </span>
-              <span className="font-mono font-bold text-ink tabular-nums">
-                {weekVol.totalActiveMinutes}{' '}
-                <span className="text-ink-muted font-normal">/ {weeklyGoalMin} min</span>
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-subtle overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${minutesPct}%` }}
-                transition={{ duration: 0.8 }}
-                className="h-full rounded-full bg-modality-time"
-              />
-            </div>
-          </div>
-
-          {/* Reps & Jumps Progress */}
-          <div>
-            <div className="flex justify-between items-baseline text-xs mb-1.5">
-              <span className="font-semibold text-ink-secondary flex items-center gap-1.5">
-                <Dumbbell className="w-3.5 h-3.5 text-modality-reps" />
-                Repetições & Saltos
-              </span>
-              <span className="font-mono font-bold text-ink tabular-nums">
-                {weekVol.totalReps}{' '}
-                <span className="text-ink-muted font-normal">/ {repsGoal}</span>
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-subtle overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${repsPct}%` }}
-                transition={{ duration: 0.8, delay: 0.1 }}
-                className="h-full rounded-full bg-modality-reps"
-              />
-            </div>
-          </div>
-
-          {/* Sessions Progress */}
-          <div>
-            <div className="flex justify-between items-baseline text-xs mb-1.5">
-              <span className="font-semibold text-ink-secondary flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-modality-cardio" />
-                Sessões na Semana
-              </span>
-              <span className="font-mono font-bold text-ink tabular-nums">
-                {weekVol.totalSessions}{' '}
-                <span className="text-ink-muted font-normal">/ {sessionsGoal}</span>
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-subtle overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${sessionsPct}%` }}
-                transition={{ duration: 0.8, delay: 0.15 }}
-                className="h-full rounded-full bg-modality-cardio"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* 4. "Prontidão & Adaptação" — Texto completo visível (sem truncamento) */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <h2 className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-2.5">
-          Prontidão & Adaptação
-        </h2>
-        <button
-          type="button"
-          onClick={() => navigate('/settings')}
-          className="w-full surface-card rounded-2xl p-4 flex items-center gap-4 text-left hover:border-border-strong transition-all"
-        >
           <IPCRing percentage={ipcPercent} accentToken={ipc.accentToken} size={88} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
@@ -508,29 +502,31 @@ export default function Home() {
               {ipc.description}
             </p>
           </div>
-        </button>
-      </motion.section>
+          </button>
+        </SpotlightCard>
+      </BlurFade>
 
       {/* 5. "Dica do Dia" — Texto completo visível (sem truncamento) */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="surface-card rounded-2xl p-4 flex gap-3.5 items-start">
-          <div className="w-9 h-9 rounded-xl bg-modality-time-soft border border-modality-time-border flex items-center justify-center shrink-0 mt-0.5">
-            <Lightbulb className="w-4 h-4 text-modality-time" />
+      <BlurFade delay={0.2} className="relative z-10">
+        <MagicCard className="rounded-2xl p-4">
+          <div className="flex gap-3.5 items-start">
+            <GlassBadge
+              size="sm"
+              tone="amber"
+              icon={<Lightbulb className="w-4 h-4" />}
+              className="mt-0.5"
+            />
+            <div className="flex-1">
+              <span className="text-[11px] uppercase tracking-wider text-ink-muted font-bold block">
+                Dica do Dia — {tip.exerciseName}
+              </span>
+              <p className="text-sm text-ink-secondary leading-relaxed mt-1">
+                {tip.tip}
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <span className="text-[11px] uppercase tracking-wider text-ink-muted font-bold block">
-              Dica do Dia — {tip.exerciseName}
-            </span>
-            <p className="text-sm text-ink-secondary leading-relaxed mt-1">
-              {tip.tip}
-            </p>
-          </div>
-        </div>
-      </motion.section>
+        </MagicCard>
+      </BlurFade>
 
       <ExerciseMediaModal
         exercise={mediaPreview}
